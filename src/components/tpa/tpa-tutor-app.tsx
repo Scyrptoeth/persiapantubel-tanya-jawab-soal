@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import {
   AlertTriangle,
+  ArrowRightLeft,
   BrainCircuit,
   Check,
   ChevronLeft,
@@ -15,6 +17,7 @@ import {
   Eraser,
   FileText,
   History,
+  Home,
   Image as ImageIcon,
   KeyRound,
   Loader2,
@@ -1020,22 +1023,39 @@ export function TpaTutorApp() {
   return (
     <main className="min-h-dvh bg-[#f5f7f6] text-[#17201c] lg:h-dvh lg:overflow-hidden">
       <div className="mx-auto flex min-h-dvh w-full max-w-none flex-col px-3 py-2 sm:px-4 lg:h-dvh lg:min-h-0">
-        <header className="flex shrink-0 flex-col gap-2 border-b border-[#d9dfda] pb-2 md:flex-row md:items-center md:justify-between">
+        <header className="sticky top-0 z-30 flex shrink-0 flex-col gap-2 border-b border-[#d9dfda] bg-[#f5f7f6]/80 pb-2 backdrop-blur-md md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-lg bg-[#0f6b57] text-white shadow-sm">
-              <BrainCircuit size={22} aria-hidden="true" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold tracking-normal text-[#17201c]">
-                Pengajar TPA
-              </h1>
-              <p className="text-sm leading-5 text-[#65716a]">
-                Teks, OCR lokal dengan review, batch, audit, dan pembahasan siap copy.
-              </p>
+            <Link
+              href="/"
+              className="grid size-10 place-items-center rounded-lg bg-[#0f6b57] text-white shadow-sm transition hover:bg-[#0c5646]"
+              title="Kembali ke Beranda"
+            >
+              <Home size={22} aria-hidden="true" />
+            </Link>
+            <div className="flex items-center gap-2">
+              <div className="hidden size-8 place-items-center rounded bg-[#eef4f1] text-[#0f6b57] sm:grid">
+                <BrainCircuit size={18} aria-hidden="true" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold tracking-normal text-[#17201c]">
+                  Pengajar TPA
+                </h1>
+                <p className="text-sm leading-5 text-[#65716a]">
+                  Teks, OCR lokal dengan review, batch, audit, dan pembahasan siap copy.
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/tbi"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#c8d0cb] bg-[#eef4f1] px-3 text-sm font-medium text-[#0f6b57] shadow-sm transition hover:bg-[#e1eae5]"
+              title="Pindah ke Pengajar TBI"
+            >
+              <ArrowRightLeft size={16} aria-hidden="true" />
+              Ke TBI
+            </Link>
             <button
               type="button"
               onClick={() => setQuestionText(sampleQuestion)}
