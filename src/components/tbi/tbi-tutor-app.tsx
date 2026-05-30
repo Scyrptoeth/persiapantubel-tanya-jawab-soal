@@ -24,6 +24,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   outputModeLabels,
   tbiQuestionTypes,
@@ -1341,13 +1342,35 @@ export function TbiTutorApp() {
                     <span className="block font-medium text-[#27332e]">
                       {imageName}
                     </span>
-                    <div className="h-2 overflow-hidden rounded-md bg-[#e7ece8]">
-                      <div
-                        className="h-full bg-[#225e76] transition-all"
-                        style={{ width: `${Math.round(ocrProgress * 100)}%` }}
+                    <div className="h-2 overflow-hidden rounded-md bg-[#e7ece8] relative">
+                      <motion.div
+                        className="absolute inset-0 bg-[#225e76] transition-all"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.round(ocrProgress * 100)}%` }}
+                        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as any }}
                       />
+                      {isOcrRunning && (
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                          animate={{ x: ["-100%", "100%"] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        />
+                      )}
                     </div>
-                    <span>{ocrStatus || "Menunggu OCR lokal."}</span>
+                    <div className="h-5 overflow-hidden">
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={ocrStatus}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          transition={{ duration: 0.2 }}
+                          className="block text-[#59655e]"
+                        >
+                          {ocrStatus || "Menunggu OCR lokal."}
+                        </motion.span>
+                      </AnimatePresence>
+                    </div>
                     <label className="flex items-start gap-2 rounded-md border border-[#c8d0cb] bg-white p-2 text-sm font-medium text-[#27332e]">
                       <input
                         type="checkbox"
@@ -1383,79 +1406,125 @@ export function TbiTutorApp() {
                                 : item.status === "failed" ||
                                     item.status === "stopped"
                                   ? "bg-[#fff0ed] text-[#813126]"
-                                  : item.status === "running"
-                                    ? "bg-[#e7f0f6] text-[#225e76]"
+                                  : item.status === "ocr" || item.status === "running"
+                                    ? "bg-[#e7f0f6] text-[#225e76] relative overflow-hidden"
                                     : "bg-white text-[#65716a]"
-                            }`}
-                          >
-                            {batchStatusLabels[item.status]}
-                          </span>
-                        </div>
-                        <span className="text-xs text-[#65716a]">
-                          {formatFileSize(item.size)}
-                          {typeof item.ocrProgress === "number"
-                            ? ` · OCR ${Math.round(item.ocrProgress * 100)}%`
-                            : ""}
-                          {item.usageText ? ` · ${item.usageText}` : ""}
-                        </span>
-                        {item.error ? (
-                          <span className="text-xs leading-5 text-[#813126]">
-                            {item.error}
-                          </span>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
+                                }`}
+                                >
+                                {batchStatusLabels[item.status]}
+                                {(item.status === "ocr" || item.status === "running") && (
+                                <motion.div
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                                animate={{ x: ["-100%", "100%"] }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                />
+                                )}
+                                </span>
+                                </div>
+                                <span className="text-xs text-[#65716a]">
+                                {formatFileSize(item.size)}
+                                {typeof item.ocrProgress === "number"
+                                ? ` · OCR ${Math.round(item.ocrProgress * 100)}%`
+                                : ""}
+                                {item.usageText ? ` · ${item.usageText}` : ""}
+                                </span>
+                                {item.status === "ocr" && (
+                                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-[#e7ece8]">
+                                <motion.div
+                                className="h-full bg-[#225e76]"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.round((item.ocrProgress || 0) * 100)}%` }}
+                                />
+                                </div>
+                                )}
+                                {item.error ? (
+                                <span className="text-xs leading-5 text-[#813126]">
+                                {item.error}
+                                </span>
+                                ) : null}
+                                </div>
+                                ))}
+                                </div>
+                                ) : null}
+                                </div>
+                                </div>
 
-            {batchItems.length ? (
-              <section className="grid max-h-60 shrink-0 gap-3 overflow-auto border-t border-[#e1e6e2] p-3">
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-base font-semibold text-[#17201c]">
-                    Review OCR batch
-                  </h2>
-                  <p className="text-sm leading-6 text-[#65716a]">
-                    Cek titik-titik, underline pilihan A-D, huruf pilihan
-                    jawaban, hyphen, dan punctuation. Item
-                    hanya dikirim ke DeepSeek setelah dicentang.
-                  </p>
-                </div>
+                                {batchItems.length ? (
+                                <section className="grid max-h-60 shrink-0 gap-3 overflow-auto border-t border-[#e1e6e2] p-3">
+                                <div className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                <h2 className="text-base font-semibold text-[#17201c]">
+                                Review OCR batch
+                                </h2>
+                                <div className="text-xs font-medium text-[#225e76] bg-[#e7f0f6] px-2 py-0.5 rounded-full">
+                                {batchItems.filter(i => i.reviewed).length} / {batchItems.length} Selesai
+                                </div>
+                                </div>
+                                <p className="text-sm leading-6 text-[#65716a]">
+                                Cek titik-titik, underline pilihan A-D, huruf pilihan
+                                jawaban, hyphen, dan punctuation. Item
+                                hanya dikirim ke DeepSeek setelah dicentang.
+                                </p>
+                                </div>
 
-                <div className="grid gap-3">
-                  {batchItems.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="rounded-md border border-[#d8e2dc] bg-[#f8faf9] p-3"
-                    >
-                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <h3 className="text-sm font-semibold text-[#27332e]">
-                            File {index + 1}: {item.name}
-                          </h3>
-                          <p className="text-xs leading-5 text-[#65716a]">
-                            {item.ocrStatus || batchStatusLabels[item.status]}
-                          </p>
-                        </div>
-                        <span
-                          className={`rounded px-2 py-1 text-xs font-medium ${
-                            item.reviewed
-                              ? "bg-[#e4f3ee] text-[#0d4f42]"
-                              : "bg-[#fff7e2] text-[#6a4d12]"
-                          }`}
-                        >
-                          {item.reviewed ? "Sudah dicek" : "Perlu dicek"}
-                        </span>
-                      </div>
-                      <textarea
-                        value={item.ocrText}
-                        onChange={(event) =>
-                          updateBatchOcrText(item.id, event.target.value)
-                        }
-                        placeholder="Hasil OCR muncul di sini. Jika kosong atau salah, ketik ulang soal dari gambar."
-                        className="min-h-28 w-full resize-y rounded-md border border-[#c8d0cb] bg-white p-3 text-sm leading-6 outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                      />
+                                <div className="grid gap-3">
+                                {batchItems.map((item, index) => (
+                                <div
+                                key={item.id}
+                                className="rounded-md border border-[#d8e2dc] bg-[#f8faf9] p-3"
+                                >
+                                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <div className="h-10">
+                                <h3 className="text-sm font-semibold text-[#27332e]">
+                                File {index + 1}: {item.name}
+                                </h3>
+                                <AnimatePresence mode="wait">
+                                <motion.p
+                                key={item.ocrStatus || item.status}
+                                initial={{ opacity: 0, x: -5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 5 }}
+                                className="text-xs leading-5 text-[#65716a]"
+                                >
+                                {item.ocrStatus || batchStatusLabels[item.status]}
+                                </motion.p>
+                                </AnimatePresence>
+                                </div>
+                                <motion.span
+                                animate={item.status === "ocr" ? { opacity: [1, 0.5, 1] } : {}}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                                className={`rounded px-2 py-1 text-xs font-medium ${
+                                item.reviewed
+                                ? "bg-[#e4f3ee] text-[#0d4f42]"
+                                : item.status === "ocr"
+                                ? "bg-[#e7f0f6] text-[#225e76]"
+                                : "bg-[#fff7e2] text-[#6a4d12]"
+                                }`}
+                                >
+                                {item.reviewed ? "Sudah dicek" : item.status === "ocr" ? "Sedang OCR..." : "Perlu dicek"}
+                                </motion.span>
+                                </div>
+                                <div className="relative">
+                                <textarea
+                                value={item.ocrText}
+                                onChange={(event) =>
+                                updateBatchOcrText(item.id, event.target.value)
+                                }
+                                placeholder="Hasil OCR muncul di sini. Jika kosong atau salah, ketik ulang soal dari gambar."
+                                className={`min-h-28 w-full resize-y rounded-md border border-[#c8d0cb] bg-white p-3 text-sm leading-6 outline-none transition-all focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce] ${
+                                item.status === "ocr" ? "opacity-50 grayscale-[0.5]" : ""
+                                }`}
+                                />
+                                {item.status === "ocr" && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
+                                <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="h-6 w-6 animate-spin text-[#225e76]" />
+                                <span className="text-[10px] font-medium text-[#225e76] uppercase tracking-wider">Processing AI...</span>
+                                </div>
+                                </div>
+                                )}
+                                </div>
+
                       <label className="mt-2 flex items-start gap-2 text-sm font-medium text-[#27332e]">
                         <input
                           type="checkbox"
