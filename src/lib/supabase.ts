@@ -36,3 +36,26 @@ export async function saveToTutorHistory({
     console.error("Failed to save to Supabase:", err);
   }
 }
+
+export async function fetchTutorHistory(domain: "tpa" | "tbi", limit = 20) {
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from("tutor_history")
+      .select("*")
+      .eq("domain", domain)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("Supabase fetch error:", error);
+      return [];
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Failed to fetch from Supabase:", err);
+    return [];
+  }
+}

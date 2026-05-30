@@ -31,12 +31,13 @@ import {
   type OutputMode,
   type TbiQuestionType,
 } from "@/lib/tbi-prompt";
-import { saveToTutorHistory } from "@/lib/supabase";
+import { fetchTutorHistory, saveToTutorHistory } from "@/lib/supabase";
 
 type ImageMode = "ocr" | "vision";
 type ReasoningEffort = "high" | "max";
 type ApiPreset = "deepseek" | "custom";
 type AnswerQuality = "standard" | "thorough";
+type HistoryMode = "local" | "cloud";
 type BatchStatus =
   | "pending"
   | "ocr"
@@ -52,6 +53,18 @@ type HistoryItem = {
   questionPreview: string;
   outputMode: OutputMode;
   answer: string;
+};
+
+type CloudHistoryItem = {
+  id: number;
+  created_at: string;
+  question_text: string;
+  answer_text: string;
+  domain: string;
+  metadata?: {
+    outputMode?: OutputMode;
+    model?: string;
+  };
 };
 
 type HistoryDeleteTarget =
@@ -214,7 +227,11 @@ export function TbiTutorApp() {
   const [showAdvancedApi, setShowAdvancedApi] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [cloudHistory, setCloudHistory] = useState<CloudHistoryItem[]>([]);
+  const [historyMode, setHistoryMode] = useState<HistoryMode>("local");
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [historyPage, setHistoryPage] = useState(0);
+  const [cloudHistoryPage, setCloudHistoryPage] = useState(0);
   const [pendingHistoryDelete, setPendingHistoryDelete] =
     useState<HistoryDeleteTarget>(null);
   const [apiPreset, setApiPreset] = useState<ApiPreset>("deepseek");
@@ -262,6 +279,12 @@ export function TbiTutorApp() {
     ? Math.min(historyPage, historyTotal - 1)
     : 0;
   const visibleHistoryItem = history[visibleHistoryIndex] || null;
+
+  const cloudHistoryTotal = cloudHistory.length;
+  const visibleCloudHistoryIndex = cloudHistoryTotal
+    ? Math.min(cloudHistoryPage, cloudHistoryTotal - 1)
+    : 0;
+  const visibleCloudHistoryItem = cloudHistory[visibleCloudHistoryIndex] || null;
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -922,11 +945,38 @@ export function TbiTutorApp() {
     setUsageText(item.createdAt);
   }
 
+  async function loadCloudHistoryData() {
+    setIsFetchingHistory(true);
+    try {
+      const data = await fetchTutorHistory("tbi");
+      setCloudHistory(data as CloudHistoryItem[]);
+      setCloudHistoryPage(0);
+    } finally {
+      setIsFetchingHistory(false);
+    }
+  }
+
+  function loadCloudHistoryItem(item: CloudHistoryItem) {
+    setAnswer(item.answer_text);
+    if (item.metadata?.outputMode) {
+      setOutputMode(item.metadata.outputMode);
+    }
+    setModelUsed(item.metadata?.model || "Riwayat cloud");
+    setUsageText(new Date(item.created_at).toLocaleString("id-ID"));
+  }
+
   function moveHistoryPage(direction: -1 | 1) {
-    if (!historyTotal) return;
-    setHistoryPage((current) =>
-      Math.min(Math.max(current + direction, 0), historyTotal - 1),
-    );
+    if (historyMode === "local") {
+      if (!history.length) return;
+      setHistoryPage((current) =>
+        Math.min(Math.max(current + direction, 0), history.length - 1),
+      );
+    } else {
+      if (!cloudHistory.length) return;
+      setCloudHistoryPage((current) =>
+        Math.min(Math.max(current + direction, 0), cloudHistory.length - 1),
+      );
+    }
   }
 
   function confirmHistoryDelete() {
@@ -1736,91 +1786,190 @@ export function TbiTutorApp() {
             </section>
 
             <section className="rounded-lg border border-[#cfd8d2] bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-[#e1e6e2] p-3">
-                <div className="flex items-center gap-2">
-                  <History size={17} aria-hidden="true" className="text-[#65716a]" />
-                  <div>
+              <div className="flex flex-col gap-3 border-b border-[#e1e6e2] p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <History size={17} aria-hidden="true" className="text-[#65716a]" />
                     <h2 className="text-base font-semibold text-[#17201c]">
-                      Riwayat lokal
+                      {historyMode === "local" ? "Riwayat lokal" : "Riwayat cloud"}
                     </h2>
-                    <p className="text-xs leading-5 text-[#65716a]">
-                      {historyTotal
-                        ? `${visibleHistoryIndex + 1}/${historyTotal}`
-                        : "0/0"}
-                    </p>
+                  </div>
+                  <div className="flex rounded-md bg-[#f0f4f2] p-1">
+                    <button
+                      type="button"
+                      onClick={() => setHistoryMode("local")}
+                      className={`rounded px-3 py-1 text-xs font-medium transition ${
+                        historyMode === "local"
+                          ? "bg-white text-[#27332e] shadow-sm"
+                          : "text-[#65716a] hover:text-[#27332e]"
+                      }`}
+                    >
+                      Lokal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHistoryMode("cloud");
+                        if (cloudHistory.length === 0) {
+                          void loadCloudHistoryData();
+                        }
+                      }}
+                      className={`rounded px-3 py-1 text-xs font-medium transition ${
+                        historyMode === "cloud"
+                          ? "bg-white text-[#27332e] shadow-sm"
+                          : "text-[#65716a] hover:text-[#27332e]"
+                      }`}
+                    >
+                      Cloud
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => moveHistoryPage(-1)}
-                    disabled={!historyTotal || visibleHistoryIndex === 0}
-                    className="grid size-9 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
-                    aria-label="Riwayat sebelumnya"
-                    title="Riwayat sebelumnya"
-                  >
-                    <ChevronLeft size={17} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveHistoryPage(1)}
-                    disabled={
-                      !historyTotal || visibleHistoryIndex >= historyTotal - 1
-                    }
-                    className="grid size-9 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
-                    aria-label="Riwayat berikutnya"
-                    title="Riwayat berikutnya"
-                  >
-                    <ChevronRight size={17} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPendingHistoryDelete({ kind: "all" })}
-                    disabled={!historyTotal}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#c8d0cb] bg-white px-2.5 text-xs font-medium text-[#27332e] transition hover:bg-[#fff1ef] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                    Hapus semua
-                  </button>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-xs leading-5 text-[#65716a]">
+                    {historyMode === "local" ? (
+                      historyTotal ? `${visibleHistoryIndex + 1}/${historyTotal}` : "0/0"
+                    ) : (
+                      cloudHistoryTotal ? `${visibleCloudHistoryIndex + 1}/${cloudHistoryTotal}` : "0/0"
+                    )}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => moveHistoryPage(-1)}
+                      disabled={
+                        (historyMode === "local" && (!historyTotal || visibleHistoryIndex === 0)) ||
+                        (historyMode === "cloud" && (!cloudHistoryTotal || visibleCloudHistoryIndex === 0))
+                      }
+                      className="grid size-9 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                      aria-label="Riwayat sebelumnya"
+                      title="Riwayat sebelumnya"
+                    >
+                      <ChevronLeft size={17} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveHistoryPage(1)}
+                      disabled={
+                        (historyMode === "local" && (!historyTotal || visibleHistoryIndex >= historyTotal - 1)) ||
+                        (historyMode === "cloud" && (!cloudHistoryTotal || visibleCloudHistoryIndex >= cloudHistoryTotal - 1))
+                      }
+                      className="grid size-9 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                      aria-label="Riwayat berikutnya"
+                      title="Riwayat berikutnya"
+                    >
+                      <ChevronRight size={17} aria-hidden="true" />
+                    </button>
+                    {historyMode === "local" ? (
+                      <button
+                        type="button"
+                        onClick={() => setPendingHistoryDelete({ kind: "all" })}
+                        disabled={!historyTotal}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#c8d0cb] bg-white px-2.5 text-xs font-medium text-[#27332e] transition hover:bg-[#fff1ef] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                      >
+                        <Trash2 size={15} aria-hidden="true" />
+                        Hapus semua
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={loadCloudHistoryData}
+                        disabled={isFetchingHistory}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#c8d0cb] bg-white px-2.5 text-xs font-medium text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                      >
+                        {isFetchingHistory ? (
+                          <Loader2 size={15} className="animate-spin" />
+                        ) : (
+                          <Upload size={15} />
+                        )}
+                        Refresh
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="p-2">
-                {visibleHistoryItem ? (
-                  <div className="flex items-start gap-2 rounded-md bg-[#f7faf8] p-2">
-                    <button
-                      type="button"
-                      onClick={() => loadHistoryItem(visibleHistoryItem)}
-                      className="grid min-w-0 flex-1 gap-1 rounded-md p-2 text-left transition hover:bg-[#eef4f1]"
-                    >
-                      <span className="text-sm font-semibold text-[#27332e]">
-                        {outputModeLabels[visibleHistoryItem.outputMode]}
-                      </span>
-                      <span className="text-xs leading-5 text-[#65716a]">
-                        {visibleHistoryItem.createdAt}
-                      </span>
-                      <span className="line-clamp-2 text-xs leading-5 text-[#65716a]">
-                        {visibleHistoryItem.questionPreview}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPendingHistoryDelete({
-                          kind: "single",
-                          id: visibleHistoryItem.id,
-                        })
-                      }
-                      className="grid size-10 shrink-0 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#fff1ef]"
-                      aria-label="Hapus riwayat ini"
-                      title="Hapus riwayat ini"
-                    >
-                      <Trash2 size={16} aria-hidden="true" />
-                    </button>
-                  </div>
+                {historyMode === "local" ? (
+                  visibleHistoryItem ? (
+                    <div className="flex items-start gap-2 rounded-md bg-[#f7faf8] p-2">
+                      <button
+                        type="button"
+                        onClick={() => loadHistoryItem(visibleHistoryItem)}
+                        className="grid min-w-0 flex-1 gap-1 rounded-md p-2 text-left transition hover:bg-[#eef4f1]"
+                      >
+                        <span className="text-sm font-semibold text-[#27332e]">
+                          {outputModeLabels[visibleHistoryItem.outputMode]}
+                        </span>
+                        <span className="text-xs leading-5 text-[#65716a]">
+                          {visibleHistoryItem.createdAt}
+                        </span>
+                        <span className="line-clamp-2 text-xs leading-5 text-[#65716a]">
+                          {visibleHistoryItem.questionPreview}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPendingHistoryDelete({
+                            kind: "single",
+                            id: visibleHistoryItem.id,
+                          })
+                        }
+                        className="grid size-10 shrink-0 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#fff1ef]"
+                        aria-label="Hapus riwayat ini"
+                        title="Hapus riwayat ini"
+                      >
+                        <Trash2 size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-sm text-[#65716a]">
+                      <History size={24} className="mx-auto mb-2 opacity-20" />
+                      <p>Belum ada riwayat lokal.</p>
+                    </div>
+                  )
                 ) : (
-                  <div className="p-4 text-sm text-[#65716a]">
-                    Belum ada riwayat.
-                  </div>
+                  visibleCloudHistoryItem ? (
+                    <div className="flex items-start gap-2 rounded-md bg-[#f7faf8] p-2">
+                      <button
+                        type="button"
+                        onClick={() => loadCloudHistoryItem(visibleCloudHistoryItem)}
+                        className="grid min-w-0 flex-1 gap-1 rounded-md p-2 text-left transition hover:bg-[#eef4f1]"
+                      >
+                        <span className="text-sm font-semibold text-[#27332e]">
+                          {visibleCloudHistoryItem.metadata?.outputMode
+                            ? outputModeLabels[visibleCloudHistoryItem.metadata.outputMode]
+                            : "Pembahasan"}
+                        </span>
+                        <span className="text-xs leading-5 text-[#65716a]">
+                          {new Date(visibleCloudHistoryItem.created_at).toLocaleString("id-ID")}
+                        </span>
+                        <span className="line-clamp-2 text-xs leading-5 text-[#65716a]">
+                          {buildQuestionPreview(visibleCloudHistoryItem.question_text)}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid place-items-center py-8 text-center text-xs text-[#65716a]">
+                      {isFetchingHistory ? (
+                        <>
+                          <Loader2 size={24} className="mb-2 animate-spin opacity-40" />
+                          <p>Mengambil data dari cloud...</p>
+                        </>
+                      ) : (
+                        <>
+                          <History size={24} className="mx-auto mb-2 opacity-20" />
+                          <p>Belum ada riwayat cloud.</p>
+                          <button
+                            onClick={loadCloudHistoryData}
+                            className="mt-2 text-[#3b82f6] hover:underline"
+                          >
+                            Muat ulang
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             </section>
