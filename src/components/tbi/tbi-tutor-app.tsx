@@ -1021,55 +1021,55 @@ export function TbiTutorApp() {
   }
 
   return (
-    <main className="min-h-dvh bg-[#f5f7f6] text-[#17201c] lg:h-dvh lg:overflow-hidden">
-      <div className="mx-auto flex min-h-dvh w-full max-w-none flex-col px-3 py-2 sm:px-4 lg:h-dvh lg:min-h-0">
-        <header className="sticky top-0 z-30 flex shrink-0 flex-col gap-2 border-b border-[#d9dfda] bg-[#f5f7f6]/80 pb-2 backdrop-blur-md md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
+    <main className="min-h-dvh bg-paper text-[#17201c] lg:h-dvh lg:overflow-hidden">
+      <div className="mx-auto flex min-h-dvh w-full max-w-none flex-col px-4 py-3 sm:px-6 lg:h-dvh lg:min-h-0 lg:py-4">
+        <header className="sticky top-0 z-40 flex shrink-0 flex-col gap-3 rounded-xl border border-forest/5 bg-white/60 pb-3 p-3 backdrop-blur-xl md:flex-row md:items-center md:justify-between shadow-premium mb-4">
+          <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="grid size-10 place-items-center rounded-lg bg-[#0f6b57] text-white shadow-sm transition hover:bg-[#0c5646]"
+              className="grid size-11 place-items-center rounded-xl bg-forest text-white shadow-premium transition hover:bg-forest/90 active:scale-95"
               title="Kembali ke Beranda"
             >
-              <Home size={22} aria-hidden="true" />
+              <Home size={24} aria-hidden="true" />
             </Link>
-            <div className="flex items-center gap-2">
-              <div className="hidden size-8 place-items-center rounded bg-[#eef4f1] text-[#0f6b57] sm:grid">
-                <BrainCircuit size={18} aria-hidden="true" />
+            <div className="flex items-center gap-3">
+              <div className="hidden size-10 place-items-center rounded-xl bg-forest/5 text-forest sm:grid shadow-inner">
+                <BrainCircuit size={20} aria-hidden="true" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold tracking-normal text-[#17201c]">
+                <h1 className="text-xl font-bold tracking-tight text-forest">
                   Pengajar TBI
                 </h1>
-                <p className="text-sm leading-5 text-[#65716a]">
-                  Teks, OCR lokal dengan review, batch, audit, dan pembahasan siap copy.
+                <p className="text-xs font-medium leading-5 text-[#65716a] opacity-80">
+                  Workspace Tutor Bahasa Inggris — Persiapantubel
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link
               href="/tpa"
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#c8d0cb] bg-[#eef4f1] px-3 text-sm font-medium text-[#0f6b57] shadow-sm transition hover:bg-[#e1eae5]"
+              className="inline-flex h-11 items-center gap-2 rounded-lg border border-forest/10 bg-forest/5 px-4 text-sm font-semibold text-forest shadow-sm transition hover:bg-forest/10 active:scale-95"
               title="Pindah ke Pengajar TPA"
             >
-              <ArrowRightLeft size={16} aria-hidden="true" />
+              <ArrowRightLeft size={18} aria-hidden="true" />
               Ke TPA
             </Link>
             <button
               type="button"
               onClick={() => setQuestionText(sampleQuestion)}
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm font-medium text-[#27332e] shadow-sm transition hover:bg-[#eef4f1]"
+              className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#c8d0cb] bg-white px-4 text-sm font-semibold text-[#27332e] shadow-sm transition hover:bg-[#f8faf9] active:scale-95"
             >
-              <FileText size={16} aria-hidden="true" />
+              <FileText size={18} aria-hidden="true" />
               Contoh
             </button>
             <button
               type="button"
               onClick={() => setShowSettings((current) => !current)}
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm font-medium text-[#27332e] shadow-sm transition hover:bg-[#eef4f1]"
+              className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#c8d0cb] bg-white px-4 text-sm font-semibold text-[#27332e] shadow-sm transition hover:bg-[#f8faf9] active:scale-95"
             >
-              <Settings2 size={16} aria-hidden="true" />
+              <Settings2 size={18} aria-hidden="true" />
               API
             </button>
           </div>
@@ -1277,29 +1277,27 @@ export function TbiTutorApp() {
           </section>
         ) : null}
 
-        <div className="grid flex-1 gap-3 py-3 lg:min-h-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)] 2xl:grid-cols-[minmax(760px,1.35fr)_minmax(520px,0.9fr)]">
-          <section className="flex min-h-[720px] flex-col rounded-lg border border-[#cfd8d2] bg-white shadow-sm lg:min-h-0 lg:overflow-auto 2xl:overflow-hidden">
-            <div className="shrink-0 border-b border-[#e1e6e2] p-3">
-              <div className="flex flex-wrap gap-2">
+        <div className="grid flex-1 gap-6 py-2 lg:min-h-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)] 2xl:grid-cols-[minmax(760px,1.35fr)_minmax(520px,0.9fr)]">
+          <section className="flex min-h-[720px] flex-col rounded-2xl border border-forest/10 bg-white shadow-premium lg:min-h-0 lg:overflow-auto 2xl:overflow-hidden">
+            <div className="shrink-0 border-b border-forest/5 bg-forest/[0.02] p-4">
+              <div className="inline-flex w-full items-center gap-1 rounded-xl bg-forest/[0.05] p-1 md:w-auto">
                 {(Object.keys(outputModeLabels) as OutputMode[]).map((mode) => (
                   <button
                     key={mode}
                     type="button"
                     onClick={() => setOutputMode(mode)}
-                    className={`min-h-10 rounded-md border px-3 py-2 text-left text-sm transition ${
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all md:flex-none ${
                       outputMode === mode
-                        ? "border-[#0f6b57] bg-[#e4f3ee] text-[#0d4f42]"
-                        : "border-[#d7ded9] bg-white text-[#56625b] hover:bg-[#f5f8f6]"
+                        ? "bg-white text-forest shadow-premium"
+                        : "text-[#65716a] hover:bg-white/50 hover:text-forest"
                     }`}
                   >
-                    <span className="block font-semibold">
-                      {outputModeLabels[mode]}
-                    </span>
-                    <span className="block text-xs">{modeDescriptions[mode]}</span>
+                    {outputModeLabels[mode]}
                   </button>
                 ))}
               </div>
             </div>
+
 
             <div className="grid shrink-0 gap-3 p-3 md:grid-cols-[220px_minmax(260px,1fr)]">
               <label className="grid gap-1 text-sm font-medium text-[#27332e]">
@@ -1340,8 +1338,8 @@ export function TbiTutorApp() {
               ) : null}
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-3 overflow-auto px-3 pb-3 xl:grid-cols-[minmax(300px,0.9fr)_minmax(320px,1.1fr)] 2xl:grid-cols-[minmax(360px,0.9fr)_minmax(460px,1.1fr)]">
-              <label className="flex min-h-0 flex-col gap-2 text-sm font-medium text-[#27332e]">
+            <div className="grid min-h-0 flex-1 gap-6 overflow-auto px-4 pb-4 xl:grid-cols-[minmax(300px,0.9fr)_minmax(320px,1.1fr)] 2xl:grid-cols-[minmax(360px,0.9fr)_minmax(460px,1.1fr)]">
+              <label className="flex min-h-0 flex-col gap-2 text-[11px] font-black uppercase tracking-widest text-forest/60">
                 Teks soal / hasil OCR
                 <textarea
                   value={questionText}
@@ -1350,7 +1348,7 @@ export function TbiTutorApp() {
                     if (imagePreview) setIsTextReviewed(false);
                   }}
                   placeholder="Paste soal, atau cek dan koreksi hasil OCR dari gambar di sini."
-                  className="min-h-[210px] flex-1 resize-none rounded-md border border-[#c8d0cb] bg-white p-3 text-base leading-7 outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce] 2xl:min-h-[260px]"
+                  className="min-h-[210px] flex-1 resize-none rounded-xl border border-forest/10 bg-forest/[0.01] p-4 text-base leading-relaxed text-[#17201c] outline-none transition focus:border-gold focus:ring-4 focus:ring-gold/10 2xl:min-h-[260px]"
                 />
               </label>
 
@@ -1406,29 +1404,39 @@ export function TbiTutorApp() {
                           event.stopPropagation();
                           setImagePreview(null);
                         }}
-                        className="absolute right-2 top-2 grid size-8 place-items-center rounded-md bg-white text-[#3c4741] shadow-sm"
+                        className="absolute right-2 top-2 grid size-8 place-items-center rounded-xl bg-forest/80 text-white shadow-premium backdrop-blur-md transition hover:bg-forest active:scale-90"
                         aria-label="Hapus gambar"
                       >
                         <X size={16} aria-hidden="true" />
                       </button>
                     </>
                   ) : batchItems.length ? (
-                    <div className="grid justify-items-center gap-2 px-4 text-center text-sm text-[#6a756e]">
-                      <ImageIcon size={34} aria-hidden="true" />
-                      <span className="font-medium text-[#3b4741]">
-                        {batchItems.length} gambar masuk batch OCR
-                      </span>
-                      <span className="text-xs">
-                        Cek hasil OCR tiap item sebelum generate.
-                      </span>
+                    <div className="grid justify-items-center gap-3 px-4 text-center text-sm">
+                      <div className="grid size-14 place-items-center rounded-2xl bg-forest/5 text-forest shadow-inner">
+                        <ImageIcon size={30} aria-hidden="true" />
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="font-bold text-forest">
+                          {batchItems.length} gambar siap OCR
+                        </span>
+                        <span className="text-xs font-medium text-[#65716a] opacity-80">
+                          Cek hasil OCR tiap item sebelum generate.
+                        </span>
+                      </div>
                     </div>
                   ) : (
-                    <div className="grid justify-items-center gap-2 px-4 text-center text-sm text-[#6a756e]">
-                      <ImageIcon size={34} aria-hidden="true" />
-                      <span className="font-medium text-[#3b4741]">
-                        Drop gambar di sini
-                      </span>
-                      <span className="text-xs">atau klik untuk memilih file</span>
+                    <div className="grid justify-items-center gap-3 px-4 text-center text-sm">
+                      <div className="grid size-14 place-items-center rounded-2xl bg-white text-forest shadow-premium">
+                        <ImageIcon size={30} aria-hidden="true" />
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="font-bold text-forest">
+                          Tarik gambar ke sini
+                        </span>
+                        <span className="text-xs font-medium text-[#65716a] opacity-80">
+                          atau klik untuk memilih file
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1727,25 +1735,25 @@ export function TbiTutorApp() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="mt-auto flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#e1e6e2] p-3">
+            <div className="sticky bottom-0 z-20 mt-auto flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-forest/10 bg-white/80 p-4 backdrop-blur-lg">
               <button
                 type="button"
                 onClick={clearAll}
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-[#c8d0cb] bg-white px-4 text-sm font-medium text-[#27332e] transition hover:bg-[#f5f8f6]"
+                className="inline-flex h-12 items-center gap-2 rounded-xl border border-forest/10 bg-white px-5 text-sm font-bold text-forest transition hover:bg-forest/5 active:scale-95"
               >
-                <Eraser size={16} aria-hidden="true" />
+                <Eraser size={18} aria-hidden="true" />
                 Bersihkan
               </button>
               <button
                 type="button"
                 onClick={batchItems.length ? solveBatch : solve}
                 disabled={batchItems.length ? !canSolveBatch : !canSolveSingle}
-                className="inline-flex h-11 min-w-44 items-center justify-center gap-2 rounded-md bg-[#0f6b57] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b5747] disabled:cursor-not-allowed disabled:bg-[#9bb6ae]"
+                className="inline-flex h-12 min-w-44 items-center justify-center gap-3 rounded-xl bg-gold px-6 text-sm font-black text-black shadow-premium transition hover:bg-gold/90 hover:shadow-premium-lg disabled:cursor-not-allowed disabled:bg-gold/40 disabled:text-black/40 disabled:shadow-none active:scale-95"
               >
                 {isSolving || isBatchSolving ? (
-                  <Loader2 size={17} className="animate-spin" aria-hidden="true" />
+                  <Loader2 size={20} className="animate-spin" aria-hidden="true" />
                 ) : (
-                  <Send size={17} aria-hidden="true" />
+                  <Send size={18} aria-hidden="true" />
                 )}
                 {batchItems.length ? "Generate batch" : "Generate"}
               </button>
@@ -1789,39 +1797,68 @@ export function TbiTutorApp() {
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-auto p-3">
-                {answer ? (
-                  <pre className="whitespace-pre-wrap break-words font-sans text-[15px] leading-7 text-[#1f2b25]">
-                    {answer}
-                  </pre>
-                ) : (
-                  <div className="grid h-full min-h-0 place-items-center rounded-md border border-dashed border-[#d4ddd6] bg-[#f8faf9] p-6 text-center text-sm text-[#65716a]">
-                    <div className="grid justify-items-center gap-3">
-                      <Clipboard size={34} aria-hidden="true" />
-                      <span>Hasil pembahasan muncul di sini.</span>
-                    </div>
-                  </div>
-                )}
+              <div className="min-h-0 flex-1 overflow-auto p-4 lg:p-6">
+                <AnimatePresence mode="wait">
+                  {answer ? (
+                    <motion.div
+                      key={answer}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
+                    >
+                      <pre
+                        className={`whitespace-pre-wrap break-words text-[15px] leading-relaxed text-[#1f2b25] ${
+                          outputMode === "docx"
+                            ? "font-premium-serif text-lg leading-loose"
+                            : "font-sans"
+                        }`}
+                      >
+                        {answer}
+                      </pre>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="grid h-full min-h-0 place-items-center rounded-2xl border border-dashed border-forest/10 bg-forest/[0.01] p-8 text-center text-sm text-[#65716a]"
+                    >
+                      <div className="grid justify-items-center gap-4">
+                        <div className="grid size-16 place-items-center rounded-2xl bg-white text-forest shadow-premium">
+                          <Clipboard size={32} aria-hidden="true" />
+                        </div>
+                        <div className="grid gap-1">
+                          <span className="font-bold text-forest">
+                            Siap Menganalisa
+                          </span>
+                          <p className="max-w-[200px] text-xs leading-5 opacity-70">
+                            Hasil pembahasan premium Anda akan muncul di sini.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </section>
 
-            <section className="rounded-lg border border-[#cfd8d2] bg-white shadow-sm">
-              <div className="flex flex-col gap-3 border-b border-[#e1e6e2] p-3">
+            <section className="rounded-2xl border border-forest/10 bg-white shadow-premium">
+              <div className="flex flex-col gap-3 border-b border-forest/5 bg-forest/[0.02] p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <History size={17} aria-hidden="true" className="text-[#65716a]" />
-                    <h2 className="text-base font-semibold text-[#17201c]">
-                      {historyMode === "local" ? "Riwayat lokal" : "Riwayat cloud"}
+                    <History size={18} aria-hidden="true" className="text-forest" />
+                    <h2 className="text-sm font-bold text-forest">
+                      {historyMode === "local" ? "RIWAYAT LOKAL" : "RIWAYAT CLOUD"}
                     </h2>
                   </div>
-                  <div className="flex rounded-md bg-[#f0f4f2] p-1">
+                  <div className="flex rounded-lg bg-forest/5 p-1">
                     <button
                       type="button"
                       onClick={() => setHistoryMode("local")}
-                      className={`rounded px-3 py-1 text-xs font-medium transition ${
+                      className={`rounded-md px-3 py-1 text-[10px] font-black uppercase tracking-wider transition ${
                         historyMode === "local"
-                          ? "bg-white text-[#27332e] shadow-sm"
-                          : "text-[#65716a] hover:text-[#27332e]"
+                          ? "bg-white text-forest shadow-premium"
+                          : "text-[#65716a] hover:text-forest"
                       }`}
                     >
                       Lokal
@@ -1834,10 +1871,10 @@ export function TbiTutorApp() {
                           void loadCloudHistoryData();
                         }
                       }}
-                      className={`rounded px-3 py-1 text-xs font-medium transition ${
+                      className={`rounded-md px-3 py-1 text-[10px] font-black uppercase tracking-wider transition ${
                         historyMode === "cloud"
-                          ? "bg-white text-[#27332e] shadow-sm"
-                          : "text-[#65716a] hover:text-[#27332e]"
+                          ? "bg-white text-forest shadow-premium"
+                          : "text-[#65716a] hover:text-forest"
                       }`}
                     >
                       Cloud
@@ -1846,11 +1883,11 @@ export function TbiTutorApp() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-xs leading-5 text-[#65716a]">
+                  <p className="text-[10px] font-bold text-[#65716a] opacity-60">
                     {historyMode === "local" ? (
-                      historyTotal ? `${visibleHistoryIndex + 1}/${historyTotal}` : "0/0"
+                      historyTotal ? `${visibleHistoryIndex + 1} / ${historyTotal}` : "0 / 0"
                     ) : (
-                      cloudHistoryTotal ? `${visibleCloudHistoryIndex + 1}/${cloudHistoryTotal}` : "0/0"
+                      cloudHistoryTotal ? `${visibleCloudHistoryIndex + 1} / ${cloudHistoryTotal}` : "0 / 0"
                     )}
                   </p>
                   <div className="flex items-center gap-1.5">
@@ -1861,11 +1898,10 @@ export function TbiTutorApp() {
                         (historyMode === "local" && (!historyTotal || visibleHistoryIndex === 0)) ||
                         (historyMode === "cloud" && (!cloudHistoryTotal || visibleCloudHistoryIndex === 0))
                       }
-                      className="grid size-9 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                      className="grid size-8 place-items-center rounded-lg border border-forest/10 bg-white text-forest transition hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-30 active:scale-90"
                       aria-label="Riwayat sebelumnya"
-                      title="Riwayat sebelumnya"
                     >
-                      <ChevronLeft size={17} aria-hidden="true" />
+                      <ChevronLeft size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -1874,33 +1910,32 @@ export function TbiTutorApp() {
                         (historyMode === "local" && (!historyTotal || visibleHistoryIndex >= historyTotal - 1)) ||
                         (historyMode === "cloud" && (!cloudHistoryTotal || visibleCloudHistoryIndex >= cloudHistoryTotal - 1))
                       }
-                      className="grid size-9 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                      className="grid size-8 place-items-center rounded-lg border border-forest/10 bg-white text-forest transition hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-30 active:scale-90"
                       aria-label="Riwayat berikutnya"
-                      title="Riwayat berikutnya"
                     >
-                      <ChevronRight size={17} aria-hidden="true" />
+                      <ChevronRight size={16} aria-hidden="true" />
                     </button>
                     {historyMode === "local" ? (
                       <button
                         type="button"
                         onClick={() => setPendingHistoryDelete({ kind: "all" })}
                         disabled={!historyTotal}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#c8d0cb] bg-white px-2.5 text-xs font-medium text-[#27332e] transition hover:bg-[#fff1ef] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-100 bg-white px-2.5 text-[10px] font-black uppercase text-red-600 transition hover:bg-red-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                       >
-                        <Trash2 size={15} aria-hidden="true" />
-                        Hapus semua
+                        <Trash2 size={13} aria-hidden="true" />
+                        Hapus
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={loadCloudHistoryData}
                         disabled={isFetchingHistory}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#c8d0cb] bg-white px-2.5 text-xs font-medium text-[#27332e] transition hover:bg-[#eef4f1] disabled:cursor-not-allowed disabled:text-[#a3aaa6]"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-forest/10 bg-white px-2.5 text-[10px] font-black uppercase text-forest transition hover:bg-forest/5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         {isFetchingHistory ? (
-                          <Loader2 size={15} className="animate-spin" />
+                          <Loader2 size={13} className="animate-spin" />
                         ) : (
-                          <Upload size={15} />
+                          <Upload size={13} />
                         )}
                         Refresh
                       </button>
