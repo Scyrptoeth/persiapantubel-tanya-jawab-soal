@@ -1040,7 +1040,7 @@ export function TpaTutorApp() {
                 <h1 className="text-xl font-bold tracking-tight text-forest">
                   Pengajar TPA
                 </h1>
-                <p className="text-xs font-medium leading-5 text-[#65716a] opacity-80">
+                <p className="text-xs font-medium leading-5 text-[#45544e]">
                   Workspace Tutor Profesional — Persiapantubel
                 </p>
               </div>
@@ -1081,7 +1081,7 @@ export function TpaTutorApp() {
               <h2 className="text-base font-semibold text-[#17201c]">
                 Pengaturan AI
               </h2>
-              <p className="text-sm text-[#65716a]">
+              <p className="text-sm text-[#45544e]">
                 Pilih layanan AI dan kunci akses yang dipakai untuk membuat
                 pembahasan.
               </p>
@@ -1099,7 +1099,7 @@ export function TpaTutorApp() {
                 >
                   <option value="deepseek">DeepSeek V4 Pro</option>
                 </select>
-                <span className="text-xs font-normal leading-5 text-[#65716a]">
+                <span className="text-xs font-normal leading-5 text-[#45544e]">
                   Website hanya mengirim teks final ke DeepSeek API.
                 </span>
               </label>
@@ -1116,7 +1116,7 @@ export function TpaTutorApp() {
                   <option value="standard">Standar, cepat, dan ringkas</option>
                   <option value="thorough">Lebih teliti untuk soal sulit</option>
                 </select>
-                <span className="text-xs font-normal leading-5 text-[#65716a]">
+                <span className="text-xs font-normal leading-5 text-[#45544e]">
                   Gunakan Standar untuk mayoritas soal. Pilih Lebih teliti saat
                   soal panjang atau rumit.
                 </span>
@@ -1137,7 +1137,7 @@ export function TpaTutorApp() {
                   <span className="block text-sm font-semibold">
                     Pakai kunci yang sudah tersimpan
                   </span>
-                  <span className="block text-xs leading-5 text-[#65716a]">
+                  <span className="block text-xs leading-5 text-[#45544e]">
                     Pilihan paling mudah untuk komputer ini.
                   </span>
                 </button>
@@ -1153,7 +1153,7 @@ export function TpaTutorApp() {
                   <span className="block text-sm font-semibold">
                     Masukkan kunci baru
                   </span>
-                  <span className="block text-xs leading-5 text-[#65716a]">
+                  <span className="block text-xs leading-5 text-[#45544e]">
                     Pakai ini jika ingin mencoba kunci DeepSeek lain.
                   </span>
                 </button>
@@ -1165,7 +1165,7 @@ export function TpaTutorApp() {
                   <KeyRound
                     size={16}
                     aria-hidden="true"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#65716a]"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#45544e]"
                   />
                   <input
                     type="password"
@@ -1180,7 +1180,7 @@ export function TpaTutorApp() {
                     className="h-11 w-full rounded-md border border-[#c8d0cb] bg-white px-9 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce] disabled:bg-[#eef1ef]"
                   />
                 </div>
-                <span className="text-xs font-normal leading-5 text-[#65716a]">
+                <span className="text-xs font-normal leading-5 text-[#45544e]">
                   Kunci baru hanya dipakai untuk permintaan ini dan tidak
                   disimpan di riwayat.
                 </span>
@@ -1289,7 +1289,7 @@ export function TpaTutorApp() {
                     className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all md:flex-none ${
                       outputMode === mode
                         ? "bg-white text-forest shadow-premium"
-                        : "text-[#65716a] hover:bg-white/50 hover:text-forest"
+                        : "text-[#45544e] hover:bg-white/50 hover:text-forest"
                     }`}
                   >
                     {outputModeLabels[mode]}
@@ -1317,7 +1317,7 @@ export function TpaTutorApp() {
 
               <div className="grid gap-1 rounded-md border border-[#d7ded9] bg-[#f8faf9] p-3 text-sm text-[#27332e]">
                 <span className="font-medium">Mode gambar</span>
-                <span className="text-xs leading-5 text-[#65716a]">
+                <span className="text-xs leading-5 text-[#45544e]">
                   OCR lokal, lalu teks wajib dicek sebelum dikirim.
                 </span>
               </div>
@@ -1417,7 +1417,7 @@ export function TpaTutorApp() {
                         <span className="font-bold text-forest">
                           {batchItems.length} gambar siap OCR
                         </span>
-                        <span className="text-xs font-medium text-[#65716a] opacity-80">
+                        <span className="text-xs font-medium text-[#45544e]">
                           Cek hasil OCR tiap item sebelum generate.
                         </span>
                       </div>
@@ -1431,7 +1431,7 @@ export function TpaTutorApp() {
                         <span className="font-bold text-forest">
                           Tarik gambar ke sini
                         </span>
-                        <span className="text-xs font-medium text-[#65716a] opacity-80">
+                        <span className="text-xs font-medium text-[#45544e]">
                           atau klik untuk memilih file
                         </span>
                       </div>
@@ -1510,7 +1510,7 @@ export function TpaTutorApp() {
                                   ? "bg-[#fff0ed] text-[#813126]"
                                   : item.status === "ocr" || item.status === "running"
                                     ? "bg-[#e7f0f6] text-[#225e76] relative overflow-hidden"
-                                    : "bg-white text-[#65716a]"
+                                    : "bg-white text-[#45544e]"
                                 }`}
                                 >
                                 {batchStatusLabels[item.status]}
@@ -1523,7 +1523,7 @@ export function TpaTutorApp() {
                                 )}
                                 </span>
                                 </div>
-                                <span className="text-xs text-[#65716a]">
+                                <span className="text-xs text-[#45544e]">
                                 {formatFileSize(item.size)}
                                 {typeof item.ocrProgress === "number"
                                 ? ` · OCR ${Math.round(item.ocrProgress * 100)}%`
@@ -1562,7 +1562,7 @@ export function TpaTutorApp() {
                                 {batchItems.filter(i => i.reviewed).length} / {batchItems.length} Selesai
                                 </div>
                                 </div>
-                                <p className="text-sm leading-6 text-[#65716a]">
+                                <p className="text-sm leading-6 text-[#45544e]">
                                 Cek simbol, angka, opsi A-E, dan tanda matematika. Item
                                 hanya dikirim ke DeepSeek setelah dicentang.
                                 </p>
@@ -1585,7 +1585,7 @@ export function TpaTutorApp() {
                                 initial={{ opacity: 0, x: -5 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 5 }}
-                                className="text-xs leading-5 text-[#65716a]"
+                                className="text-xs leading-5 text-[#45544e]"
                                 >
                                 {item.ocrStatus || batchStatusLabels[item.status]}
                                 </motion.p>
@@ -1762,7 +1762,7 @@ export function TpaTutorApp() {
               <div className="flex items-center justify-between gap-3 border-b border-[#e1e6e2] p-3">
                 <div>
                   <h2 className="text-base font-semibold text-[#17201c]">Output</h2>
-                  <p className="text-sm text-[#65716a]">
+                  <p className="text-sm text-[#45544e]">
                     {modelUsed ? `${modelUsed}${usageText ? ` · ${usageText}` : ""}` : "Belum ada hasil"}
                   </p>
                 </div>
@@ -1818,7 +1818,7 @@ export function TpaTutorApp() {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="grid h-full min-h-0 place-items-center rounded-2xl border border-dashed border-forest/10 bg-forest/[0.01] p-8 text-center text-sm text-[#65716a]"
+                      className="grid h-full min-h-0 place-items-center rounded-2xl border border-dashed border-forest/10 bg-forest/[0.01] p-8 text-center text-sm text-[#45544e]"
                     >
                       <div className="grid justify-items-center gap-4">
                         <div className="grid size-16 place-items-center rounded-2xl bg-white text-forest shadow-premium">
@@ -1828,7 +1828,7 @@ export function TpaTutorApp() {
                           <span className="font-bold text-forest">
                             Siap Menganalisa
                           </span>
-                          <p className="max-w-[200px] text-xs leading-5 opacity-70">
+                          <p className="max-w-[200px] text-xs leading-5 text-[#45544e]">
                             Hasil pembahasan premium Anda akan muncul di sini.
                           </p>
                         </div>
@@ -1855,7 +1855,7 @@ export function TpaTutorApp() {
                       className={`rounded-md px-3 py-1 text-[10px] font-black uppercase tracking-wider transition ${
                         historyMode === "local"
                           ? "bg-white text-forest shadow-premium"
-                          : "text-[#65716a] hover:text-forest"
+                          : "text-[#45544e] hover:text-forest"
                       }`}
                     >
                       Lokal
@@ -1871,7 +1871,7 @@ export function TpaTutorApp() {
                       className={`rounded-md px-3 py-1 text-[10px] font-black uppercase tracking-wider transition ${
                         historyMode === "cloud"
                           ? "bg-white text-forest shadow-premium"
-                          : "text-[#65716a] hover:text-forest"
+                          : "text-[#45544e] hover:text-forest"
                       }`}
                     >
                       Cloud
@@ -1880,7 +1880,7 @@ export function TpaTutorApp() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-[#65716a] opacity-60">
+                  <p className="text-[10px] font-bold text-[#45544e]">
                     {historyMode === "local" ? (
                       historyTotal ? `${visibleHistoryIndex + 1} / ${historyTotal}` : "0 / 0"
                     ) : (
@@ -1952,10 +1952,10 @@ export function TpaTutorApp() {
                         <span className="text-sm font-semibold text-[#27332e]">
                           {outputModeLabels[visibleHistoryItem.outputMode]}
                         </span>
-                        <span className="text-xs leading-5 text-[#65716a]">
+                        <span className="text-xs leading-5 text-[#45544e]">
                           {visibleHistoryItem.createdAt}
                         </span>
-                        <span className="line-clamp-2 text-xs leading-5 text-[#65716a]">
+                        <span className="line-clamp-2 text-xs leading-5 text-[#45544e]">
                           {visibleHistoryItem.questionPreview}
                         </span>
                       </button>
@@ -1975,7 +1975,7 @@ export function TpaTutorApp() {
                       </button>
                     </div>
                   ) : (
-                    <div className="p-4 text-center text-sm text-[#65716a]">
+                    <div className="p-4 text-center text-sm text-[#45544e]">
                       <History size={24} className="mx-auto mb-2 opacity-20" />
                       <p>Belum ada riwayat lokal.</p>
                     </div>
@@ -1993,16 +1993,16 @@ export function TpaTutorApp() {
                             ? outputModeLabels[visibleCloudHistoryItem.metadata.outputMode]
                             : "Pembahasan"}
                         </span>
-                        <span className="text-xs leading-5 text-[#65716a]">
+                        <span className="text-xs leading-5 text-[#45544e]">
                           {new Date(visibleCloudHistoryItem.created_at).toLocaleString("id-ID")}
                         </span>
-                        <span className="line-clamp-2 text-xs leading-5 text-[#65716a]">
+                        <span className="line-clamp-2 text-xs leading-5 text-[#45544e]">
                           {buildQuestionPreview(visibleCloudHistoryItem.question_text)}
                         </span>
                       </button>
                     </div>
                   ) : (
-                    <div className="grid place-items-center py-8 text-center text-xs text-[#65716a]">
+                    <div className="grid place-items-center py-8 text-center text-xs text-[#45544e]">
                       {isFetchingHistory ? (
                         <>
                           <Loader2 size={24} className="mb-2 animate-spin opacity-40" />
@@ -2049,7 +2049,7 @@ export function TpaTutorApp() {
                       ? "Hapus semua riwayat?"
                       : "Hapus riwayat ini?"}
                   </h3>
-                  <p className="text-sm leading-6 text-[#65716a]">
+                  <p className="text-sm leading-6 text-[#45544e]">
                     {pendingHistoryDelete.kind === "all"
                       ? "Semua riwayat lokal di browser ini akan dihapus."
                       : "Item riwayat lokal ini akan dihapus dari browser ini."}

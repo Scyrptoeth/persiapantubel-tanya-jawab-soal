@@ -119,20 +119,20 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-dvh flex flex-col items-center justify-center p-6 md:p-24 relative overflow-hidden bg-[var(--background)]">
-      {/* Background decoration with subtle animation */}
+    <main className="min-h-dvh flex flex-col items-center justify-center p-6 md:p-24 relative overflow-hidden bg-paper text-forest">
+      {/* Background decoration with subtle premium tint */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
          <motion.div 
            initial={{ opacity: 0, scale: 0.8 }}
-           animate={{ opacity: 0.6, scale: 1 }}
+           animate={{ opacity: 0.4, scale: 1 }}
            transition={{ duration: 2, ease: "easeOut" }}
-           className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 dark:bg-blue-900/20 rounded-full blur-[120px]" 
+           className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-forest/5 rounded-full blur-[120px]" 
          />
          <motion.div 
            initial={{ opacity: 0, scale: 0.8 }}
-           animate={{ opacity: 0.6, scale: 1 }}
+           animate={{ opacity: 0.4, scale: 1 }}
            transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
-           className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-100 dark:bg-emerald-900/20 rounded-full blur-[120px]" 
+           className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-gold/10 rounded-full blur-[120px]" 
          />
       </div>
 
@@ -146,13 +146,13 @@ export default function Home() {
           <div className="overflow-hidden">
             <motion.h1 
               variants={revealVariants}
-              className="text-4xl md:text-6xl font-extrabold tracking-tight text-balance text-slate-900 dark:text-white pb-2"
+              className="text-4xl md:text-7xl font-black tracking-tight text-balance text-forest pb-2"
             >
               Platform Tutor <motion.span 
                 initial={{ color: "inherit" }}
-                animate={{ color: "var(--blue-600)" }}
+                animate={{ color: "#d4af37" }}
                 transition={{ delay: 1.5, duration: 1 }}
-                className="text-blue-600 dark:text-blue-400"
+                className="text-gold"
               >
                 Persiapantubel
               </motion.span>
@@ -160,41 +160,41 @@ export default function Home() {
           </div>
           <motion.p 
             variants={blurFadeVariants}
-            className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-[#45544e] max-w-2xl mx-auto leading-relaxed font-medium"
           >
             Pilih jalur pembelajaran Anda. Asisten AI kami siap membantu memecahkan dan memahami setiap soal dengan penjelasan yang komprehensif.
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Card TPA */}
           <motion.div variants={cardVariantsLeft}>
-            <Link href="/tpa" className="group block h-full focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/50 rounded-3xl">
+            <Link href="/tpa" className="group block h-full focus:outline-none focus-visible:ring-4 focus-visible:ring-gold/50 rounded-3xl">
               <motion.div 
                 variants={cardHoverVariants}
                 whileHover="hover"
                 initial="initial"
-                className="relative h-full flex flex-col items-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-shadow duration-300 hover:shadow-xl"
+                className="relative h-full flex flex-col items-center p-10 bg-white rounded-3xl border border-forest/10 shadow-premium transition-all duration-300 hover:shadow-premium-lg hover:border-gold/30"
               >
                 <motion.div 
                   variants={iconBgVariants}
-                  className="w-16 h-16 mb-6 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400"
+                  className="w-20 h-20 mb-8 rounded-2xl bg-forest/5 flex items-center justify-center text-forest shadow-inner"
                 >
                   <motion.div variants={iconVariants}>
-                    <BrainCircuit className="w-8 h-8" />
+                    <BrainCircuit className="w-10 h-10" />
                   </motion.div>
                 </motion.div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Tanya Jawab TPA</h2>
-                <p className="text-slate-600 dark:text-slate-400 text-center mb-6 grow">
+                <h2 className="text-2xl font-black text-forest mb-4 uppercase tracking-wide">Tanya Jawab TPA</h2>
+                <p className="text-[#45544e] text-center mb-8 grow font-medium leading-relaxed">
                   Fokus pada penalaran logis, numerikal, dan verbal. Dapatkan pembahasan langkah demi langkah untuk setiap tipe soal TPA.
                 </p>
-                <div className="flex items-center text-blue-600 dark:text-blue-400 font-medium">
+                <div className="flex items-center text-forest font-black uppercase text-xs tracking-widest bg-forest/5 px-4 py-2 rounded-full group-hover:bg-gold group-hover:text-black transition-colors">
                   Mulai Belajar TPA
                   <motion.div
                     animate={{ x: [0, 5, 0] }}
                     transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                   >
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    <ArrowRight className="ml-2 w-4 h-4" />
                   </motion.div>
                 </div>
               </motion.div>
@@ -203,32 +203,32 @@ export default function Home() {
 
           {/* Card TBI */}
           <motion.div variants={cardVariantsRight}>
-            <Link href="/tbi" className="group block h-full focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/50 rounded-3xl">
+            <Link href="/tbi" className="group block h-full focus:outline-none focus-visible:ring-4 focus-visible:ring-gold/50 rounded-3xl">
               <motion.div 
                 variants={cardHoverVariants}
                 whileHover="hover"
                 initial="initial"
-                className="relative h-full flex flex-col items-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-shadow duration-300 hover:shadow-xl"
+                className="relative h-full flex flex-col items-center p-10 bg-white rounded-3xl border border-forest/10 shadow-premium transition-all duration-300 hover:shadow-premium-lg hover:border-gold/30"
               >
                 <motion.div 
                   variants={iconBgVariants}
-                  className="w-16 h-16 mb-6 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400"
+                  className="w-20 h-20 mb-8 rounded-2xl bg-forest/5 flex items-center justify-center text-forest shadow-inner"
                 >
                   <motion.div variants={iconVariants}>
-                    <GraduationCap className="w-8 h-8" />
+                    <GraduationCap className="w-10 h-10" />
                   </motion.div>
                 </motion.div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Tanya Jawab TBI</h2>
-                <p className="text-slate-600 dark:text-slate-400 text-center mb-6 grow">
+                <h2 className="text-2xl font-black text-forest mb-4 uppercase tracking-wide">Tanya Jawab TBI</h2>
+                <p className="text-[#45544e] text-center mb-8 grow font-medium leading-relaxed">
                   Tingkatkan kemampuan Bahasa Inggris Anda dengan analisis grammar mendalam dan strategi menjawab soal TBI secara efektif.
                 </p>
-                <div className="flex items-center text-emerald-600 dark:text-emerald-400 font-medium">
+                <div className="flex items-center text-forest font-black uppercase text-xs tracking-widest bg-forest/5 px-4 py-2 rounded-full group-hover:bg-gold group-hover:text-black transition-colors">
                   Mulai Belajar TBI
                   <motion.div
                     animate={{ x: [0, 5, 0] }}
                     transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                   >
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    <ArrowRight className="ml-2 w-4 h-4" />
                   </motion.div>
                 </div>
               </motion.div>
