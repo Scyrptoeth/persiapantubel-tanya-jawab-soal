@@ -78,13 +78,42 @@ export default function Home() {
   };
 
   const iconVariants = {
-    initial: { scale: 1, rotate: 0 },
+    initial: { scale: 1, rotate: 0, filter: "drop-shadow(0 0 0px rgba(0,0,0,0))" },
     hover: { 
-      scale: 1.15, 
-      rotate: 5,
+      scale: 1.2, 
+      rotate: [0, -10, 10, 0] as any,
+      filter: [
+        "drop-shadow(0 0 0px rgba(0,0,0,0))",
+        "drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))",
+        "drop-shadow(0 0 0px rgba(0,0,0,0))"
+      ],
       transition: { 
-        duration: 0.3, 
-        ease: "easeOut" as any 
+        rotate: {
+          duration: 0.5,
+          ease: "easeInOut" as any
+        },
+        scale: {
+          type: "spring" as any,
+          stiffness: 400,
+          damping: 10
+        },
+        filter: {
+          duration: 1,
+          repeat: Infinity
+        }
+      } 
+    }
+  };
+
+  const iconBgVariants = {
+    initial: { scale: 1, opacity: 1 },
+    hover: { 
+      scale: [1, 1.05, 1],
+      opacity: [1, 0.8, 1],
+      transition: { 
+        duration: 2,
+        repeat: Infinity,
+        ease: "easeInOut" as any
       } 
     }
   };
@@ -148,10 +177,12 @@ export default function Home() {
                 className="relative h-full flex flex-col items-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-shadow duration-300 hover:shadow-xl"
               >
                 <motion.div 
-                  variants={iconVariants}
+                  variants={iconBgVariants}
                   className="w-16 h-16 mb-6 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400"
                 >
-                  <BrainCircuit className="w-8 h-8" />
+                  <motion.div variants={iconVariants}>
+                    <BrainCircuit className="w-8 h-8" />
+                  </motion.div>
                 </motion.div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Tanya Jawab TPA</h2>
                 <p className="text-slate-600 dark:text-slate-400 text-center mb-6 grow">
@@ -180,10 +211,12 @@ export default function Home() {
                 className="relative h-full flex flex-col items-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-shadow duration-300 hover:shadow-xl"
               >
                 <motion.div 
-                  variants={iconVariants}
+                  variants={iconBgVariants}
                   className="w-16 h-16 mb-6 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400"
                 >
-                  <GraduationCap className="w-8 h-8" />
+                  <motion.div variants={iconVariants}>
+                    <GraduationCap className="w-8 h-8" />
+                  </motion.div>
                 </motion.div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Tanya Jawab TBI</h2>
                 <p className="text-slate-600 dark:text-slate-400 text-center mb-6 grow">
