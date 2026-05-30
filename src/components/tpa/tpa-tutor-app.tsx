@@ -1536,6 +1536,19 @@ export function TpaTutorApp() {
                           Teks OCR file ini sudah saya cek dan koreksi.
                         </span>
                       </label>
+                      <AnimatePresence>
+                        {item.error && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-2 flex items-start gap-2 rounded-lg border border-rose-100 bg-rose-50/30 p-2 text-xs text-rose-800"
+                          >
+                            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-rose-500" />
+                            <p>{item.error}</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   ))}
                 </div>
@@ -1554,20 +1567,67 @@ export function TpaTutorApp() {
               </label>
             </div>
 
-            {error ? (
-              <div className="mx-4 mb-4 flex gap-2 rounded-md border border-[#e4a9a0] bg-[#fff0ed] p-3 text-sm text-[#813126]">
-                <AlertTriangle size={18} aria-hidden="true" className="mt-0.5" />
-                <p>{error}</p>
-              </div>
-            ) : null}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: 10 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: 10 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as any }}
+                  className="mx-4 mb-4 overflow-hidden"
+                >
+                  <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-3 text-sm text-rose-900 shadow-sm backdrop-blur-sm">
+                    <motion.div
+                      animate={{ x: [0, -2, 2, -2, 2, 0] }}
+                      transition={{ duration: 0.4, delay: 0.1 }}
+                      className="shrink-0"
+                    >
+                      <AlertTriangle size={18} aria-hidden="true" className="text-rose-500" />
+                    </motion.div>
+                    <p className="grow leading-relaxed">{error}</p>
+                    <button
+                      type="button"
+                      onClick={() => setError("")}
+                      className="shrink-0 rounded-md p-0.5 hover:bg-rose-100/50 transition-colors"
+                      aria-label="Tutup pesan error"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {batchStopMessage ? (
-              <div className="mx-4 mb-4 flex gap-2 rounded-md border border-[#e0b75c] bg-[#fff7e2] p-3 text-sm text-[#6a4d12]">
-                <AlertTriangle size={18} aria-hidden="true" className="mt-0.5" />
-                <p>{batchStopMessage}</p>
-              </div>
-            ) : null}
-
+            <AnimatePresence>
+              {batchStopMessage && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: 10 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: 10 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as any }}
+                  className="mx-4 mb-4 overflow-hidden"
+                >
+                  <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50/50 p-3 text-sm text-amber-900 shadow-sm backdrop-blur-sm">
+                    <motion.div
+                      animate={{ x: [0, -1, 1, -1, 1, 0] }}
+                      transition={{ duration: 0.4, delay: 0.1 }}
+                      className="shrink-0"
+                    >
+                      <AlertTriangle size={18} aria-hidden="true" className="text-amber-500" />
+                    </motion.div>
+                    <p className="grow leading-relaxed">{batchStopMessage}</p>
+                    <button
+                      type="button"
+                      onClick={() => setBatchStopMessage("")}
+                      className="shrink-0 rounded-md p-0.5 hover:bg-amber-100/50 transition-colors"
+                      aria-label="Tutup pesan"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div className="mt-auto flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#e1e6e2] p-3">
               <button
                 type="button"
