@@ -1,29 +1,14 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent, KeyboardEvent } from "react";
 import {
   AlertTriangle,
   ArrowRightLeft,
-  BrainCircuit,
   Check,
   ChevronLeft,
   ChevronRight,
-  Clipboard,
   Copy,
   Download,
-  Eraser,
-  FileText,
-  History,
-  Home,
-  Image as ImageIcon,
-  KeyRound,
-  Loader2,
-  Send,
-  Settings2,
-  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -36,60 +21,38 @@ import {
 } from "@/lib/tbi-prompt";
 import { fetchTutorHistory, saveToTutorHistory } from "@/lib/supabase";
 
-type ImageMode = "ocr" | "vision";
-type ReasoningEffort = "high" | "max";
-type ApiPreset = "deepseek" | "custom";
-type AnswerQuality = "standard" | "thorough";
-type HistoryMode = "local" | "cloud";
-type BatchStatus =
-  | "pending"
-  | "ocr"
-  | "review"
-  | "running"
-  | "done"
-  | "failed"
-  | "stopped";
+// Decoupled Components
+import { Header } from "@/components/shared/Header";
+import { SettingsPanel, type ApiPreset, type AnswerQuality, type ReasoningEffort } from "@/components/shared/SettingsPanel";
+import { Dropzone } from "@/components/shared/Dropzone";
+import { HistoryPanel } from "@/components/shared/HistoryPanel";
+import { OutputPanel } from "@/components/shared/OutputPanel";
+import { StickyActionPanel } from "@/components/shared/StickyActionPanel";
+import { BatchReviewPanel } from "@/components/shared/BatchReviewPanel";
+import type { HistoryMode, HistoryItem, CloudHistoryItem, HistoryDeleteTarget, BatchStatus, BatchItem } from "@/components/shared/types";
 
-type HistoryItem = {
-  id: string;
-  createdAt: string;
-  questionPreview: string;
-  outputMode: OutputMode;
-  answer: string;
+const IMAGE_MODE = "ocr";
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_BATCH_FILES = 20;
+
+const sampleQuestion =
+  "Tail pipes are now coated with a thin ... ceramic.\n\nA. prevent-corrosion\nB. corrosion-prevent\nC. corrosion-prevention\nD. corrosion-preventing";
+
+const modeDescriptions: Record<OutputMode, string> = {
+  standard: "Format baku single-question.",
+  concise: "Kunci dan alasan inti.",
+  audit: "Kroscek kunci lama.",
+  docx: "Blok dokumen rapi.",
 };
 
-type CloudHistoryItem = {
-  id: number;
-  created_at: string;
-  question_text: string;
-  answer_text: string;
-  domain: string;
-  metadata?: {
-    outputMode?: OutputMode;
-    model?: string;
-  };
-};
-
-type HistoryDeleteTarget =
-  | { kind: "single"; id: string }
-  | { kind: "all" }
-  | null;
-
-type BatchItem = {
-  id: string;
-  name: string;
-  size: number;
-  imageDataUrl: string;
-  ocrText: string;
-  reviewed: boolean;
-  ocrStatus?: string;
-  ocrProgress?: number;
-  status: BatchStatus;
-  answer?: string;
-  error?: string;
-  model?: string;
-  usageText?: string;
-  stopReason?: string;
+const batchStatusLabels: Record<BatchStatus, string> = {
+  pending: "Menunggu",
+  ocr: "OCR",
+  review: "Perlu cek",
+  running: "Diproses",
+  done: "Selesai",
+  failed: "Gagal",
+  stopped: "Dihentikan",
 };
 
 type SolveResponse = {
@@ -116,30 +79,6 @@ type TesseractModule = {
       tessedit_pageseg_mode?: string;
     },
   ) => Promise<{ data: { text: string } }>;
-};
-
-const IMAGE_MODE: ImageMode = "ocr";
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const MAX_BATCH_FILES = 20;
-
-const sampleQuestion =
-  "Tail pipes are now coated with a thin ... ceramic.\n\nA. prevent-corrosion\nB. corrosion-prevent\nC. corrosion-prevention\nD. corrosion-preventing";
-
-const modeDescriptions: Record<OutputMode, string> = {
-  standard: "Format baku single-question.",
-  concise: "Kunci dan alasan inti.",
-  audit: "Kroscek kunci lama.",
-  docx: "Blok dokumen rapi.",
-};
-
-const batchStatusLabels: Record<BatchStatus, string> = {
-  pending: "Menunggu",
-  ocr: "OCR",
-  review: "Perlu cek",
-  running: "Diproses",
-  done: "Selesai",
-  failed: "Gagal",
-  stopped: "Dihentikan",
 };
 
 class SolveRequestError extends Error {
@@ -179,7 +118,6 @@ function formatFileSize(size: number) {
   if (size < 1024 * 1024) {
     return `${Math.max(1, Math.round(size / 1024))} KB`;
   }
-
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
@@ -189,16 +127,12 @@ function isLimitMessage(message: string) {
 
 function buildBatchAnswer(items: BatchItem[]) {
   return items
-    .filter((item) =>
-      ["done", "failed", "stopped"].includes(item.status),
-    )
+    .filter((item) => ["done", "failed", "stopped"].includes(item.status))
     .map((item, index) => {
       const header = `File ${index + 1}: ${item.name}`;
-
       if (item.answer) {
         return `${header}\n\n${item.answer}`;
       }
-
       return `${header}\n\nGagal: ${item.error || "File belum selesai diproses."}`;
     })
     .join("\n\n---\n\n");
@@ -218,7 +152,6 @@ export function TbiTutorApp() {
   const [ocrProgress, setOcrProgress] = useState(0);
   const [isOcrRunning, setIsOcrRunning] = useState(false);
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
-  const [batchStopMessage, setBatchStopMessage] = useState("");
   const [isSolving, setIsSolving] = useState(false);
   const [isBatchSolving, setIsBatchSolving] = useState(false);
   const [answer, setAnswer] = useState("");
@@ -227,7 +160,6 @@ export function TbiTutorApp() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showAdvancedApi, setShowAdvancedApi] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [cloudHistory, setCloudHistory] = useState<CloudHistoryItem[]>([]);
@@ -257,14 +189,7 @@ export function TbiTutorApp() {
       !isOcrRunning &&
       questionText.trim().length > 0 &&
       (!imagePreview || isTextReviewed),
-    [
-      imagePreview,
-      isBatchSolving,
-      isOcrRunning,
-      isSolving,
-      isTextReviewed,
-      questionText,
-    ],
+    [imagePreview, isBatchSolving, isOcrRunning, isSolving, isTextReviewed, questionText],
   );
 
   const canSolveBatch = useMemo(
@@ -278,15 +203,11 @@ export function TbiTutorApp() {
   );
 
   const historyTotal = history.length;
-  const visibleHistoryIndex = historyTotal
-    ? Math.min(historyPage, historyTotal - 1)
-    : 0;
+  const visibleHistoryIndex = historyTotal ? Math.min(historyPage, historyTotal - 1) : 0;
   const visibleHistoryItem = history[visibleHistoryIndex] || null;
 
   const cloudHistoryTotal = cloudHistory.length;
-  const visibleCloudHistoryIndex = cloudHistoryTotal
-    ? Math.min(cloudHistoryPage, cloudHistoryTotal - 1)
-    : 0;
+  const visibleCloudHistoryIndex = cloudHistoryTotal ? Math.min(cloudHistoryPage, cloudHistoryTotal - 1) : 0;
   const visibleCloudHistoryItem = cloudHistory[visibleCloudHistoryIndex] || null;
 
   useEffect(() => {
@@ -300,97 +221,49 @@ export function TbiTutorApp() {
         hasLoadedHistoryRef.current = true;
       }
     });
-
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
     if (!hasLoadedHistoryRef.current) return;
-
-    window.localStorage.setItem(
-      "tbi-tutor-history",
-      JSON.stringify(history.slice(0, 8)),
-    );
+    window.localStorage.setItem("tbi-tutor-history", JSON.stringify(history.slice(0, 8)));
   }, [history]);
 
   useEffect(() => {
     if (!pendingHistoryDelete) return;
-
     function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape") {
-        setPendingHistoryDelete(null);
-      }
+      if (event.key === "Escape") setPendingHistoryDelete(null);
     }
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pendingHistoryDelete]);
 
-  function validateImageFile(file: File) {
-    if (!file.type.startsWith("image/")) {
-      return `${file.name} bukan file gambar.`;
-    }
-
-    if (file.size > MAX_IMAGE_BYTES) {
-      return `${file.name} berukuran ${formatFileSize(
-        file.size,
-      )}. Batas aman OCR lokal adalah 8 MB per file.`;
-    }
-
-    return "";
-  }
-
-  function readImageDataUrl(file: File) {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error(`${file.name} gagal dibaca.`));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function loadImageForOcr(imageDataUrl: string) {
-    return new Promise<HTMLImageElement>((resolve, reject) => {
-      const image = document.createElement("img");
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error("Gambar gagal diproses untuk OCR."));
-      image.src = imageDataUrl;
-    });
-  }
-
   async function preprocessImageForOcr(imageDataUrl: string) {
     try {
-      const image = await loadImageForOcr(imageDataUrl);
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = document.createElement("img");
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = imageDataUrl;
+      });
       const scale = Math.min(3, Math.max(2, 3200 / image.naturalWidth));
       const width = Math.round(image.naturalWidth * scale);
       const height = Math.round(image.naturalHeight * scale);
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d", { willReadFrequently: true });
-
       if (!context) return imageDataUrl;
-
       canvas.width = width;
       canvas.height = height;
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, width, height);
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = "high";
       context.drawImage(image, 0, 0, width, height);
-
       const imageData = context.getImageData(0, 0, width, height);
       const pixels = imageData.data;
-
-      for (let index = 0; index < pixels.length; index += 4) {
-        const gray =
-          pixels[index] * 0.299 +
-          pixels[index + 1] * 0.587 +
-          pixels[index + 2] * 0.114;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const gray = pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
         const value = gray > 185 ? 255 : 0;
-        pixels[index] = value;
-        pixels[index + 1] = value;
-        pixels[index + 2] = value;
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = value;
       }
-
       context.putImageData(imageData, 0, 0);
       return canvas.toDataURL("image/png");
     } catch {
@@ -398,10 +271,7 @@ export function TbiTutorApp() {
     }
   }
 
-  async function runOcrForImage(
-    imageDataUrl: string,
-    onProgress: (message: OcrMessage) => void,
-  ) {
+  async function runOcrForImage(imageDataUrl: string, onProgress: (message: OcrMessage) => void) {
     const tesseract = (await import("tesseract.js")) as unknown as TesseractModule;
     const preparedImage = await preprocessImageForOcr(imageDataUrl);
     const result = await tesseract.recognize(preparedImage, "ind+eng", {
@@ -409,7 +279,6 @@ export function TbiTutorApp() {
       preserve_interword_spaces: "1",
       tessedit_pageseg_mode: "6",
     });
-
     return result.data.text.trim();
   }
 
@@ -418,28 +287,17 @@ export function TbiTutorApp() {
     setOcrStatus("Memuat OCR lokal");
     setOcrProgress(0.05);
     setIsTextReviewed(false);
-
     try {
       const text = await runOcrForImage(imageDataUrl, (message) => {
         if (message.status) setOcrStatus(message.status);
-        if (typeof message.progress === "number") {
-          setOcrProgress(message.progress);
-        }
+        if (typeof message.progress === "number") setOcrProgress(message.progress);
       });
-
       setQuestionText(text);
       setOcrStatus(text ? "OCR selesai. Cek teks sebelum dikirim." : "OCR tidak menemukan teks.");
       setOcrProgress(1);
-      if (!text) {
-        setError("OCR tidak menemukan teks yang bisa dibaca. Ketik soal secara manual dari gambar.");
-      }
-    } catch (ocrError) {
+    } catch (err) {
       setOcrStatus("OCR gagal");
-      setError(
-        ocrError instanceof Error
-          ? ocrError.message
-          : "OCR gagal membaca gambar.",
-      );
+      setError(err instanceof Error ? err.message : "OCR gagal membaca gambar.");
     } finally {
       setIsOcrRunning(false);
     }
@@ -447,72 +305,20 @@ export function TbiTutorApp() {
 
   async function runBatchOcr(items: BatchItem[]) {
     setIsOcrRunning(true);
-    setBatchStopMessage("");
-
     let workingItems = items;
-
     try {
       for (const item of workingItems) {
-        workingItems = workingItems.map((current) =>
-          current.id === item.id
-            ? {
-                ...current,
-                status: "ocr" as BatchStatus,
-                ocrStatus: "Memuat OCR lokal",
-                ocrProgress: 0.05,
-              }
-            : current,
-        );
+        workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: "ocr", ocrStatus: "Memuat OCR lokal", ocrProgress: 0.05 } : c);
         setBatchItems(workingItems);
-
         try {
           const text = await runOcrForImage(item.imageDataUrl, (message) => {
-            workingItems = workingItems.map((current) =>
-              current.id === item.id
-                ? {
-                    ...current,
-                    ocrStatus: message.status || current.ocrStatus,
-                    ocrProgress:
-                      typeof message.progress === "number"
-                        ? message.progress
-                        : current.ocrProgress,
-                  }
-                : current,
-            );
+            workingItems = workingItems.map((c) => c.id === item.id ? { ...c, ocrStatus: message.status || c.ocrStatus, ocrProgress: message.progress ?? c.ocrProgress } : c);
             setBatchItems(workingItems);
           });
-
-          workingItems = workingItems.map((current) =>
-            current.id === item.id
-              ? {
-                  ...current,
-                  status: "review" as BatchStatus,
-                  ocrText: text,
-                  reviewed: false,
-                  ocrStatus: text
-                    ? "OCR selesai. Cek teks."
-                    : "OCR tidak menemukan teks.",
-                  ocrProgress: 1,
-                  error: text ? "" : "Ketik soal manual dari gambar ini.",
-                }
-              : current,
-          );
+          workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: "review", ocrText: text, reviewed: false, ocrStatus: text ? "OCR selesai." : "OCR gagal.", ocrProgress: 1 } : c);
           setBatchItems(workingItems);
-        } catch (ocrError) {
-          workingItems = workingItems.map((current) =>
-            current.id === item.id
-              ? {
-                  ...current,
-                  status: "failed" as BatchStatus,
-                  reviewed: false,
-                  ocrStatus: "OCR gagal",
-                  error:
-                    ocrError instanceof Error
-                      ? ocrError.message
-                      : "OCR gagal membaca gambar.",
-                }
-              : current,
-          );
+        } catch (err) {
+          workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: "failed", ocrStatus: "OCR gagal", error: err instanceof Error ? err.message : "Gagal." } : c);
           setBatchItems(workingItems);
         }
       }
@@ -523,138 +329,86 @@ export function TbiTutorApp() {
 
   async function handleFilesChange(fileList: FileList | File[] | null) {
     setError("");
-    setBatchStopMessage("");
-
     const files = Array.from(fileList || []);
     if (!files.length) return;
-
     if (files.length > MAX_BATCH_FILES) {
       setError(`Maksimal ${MAX_BATCH_FILES} gambar per batch.`);
       return;
     }
-
-    const firstInvalid = files.map(validateImageFile).find(Boolean);
-    if (firstInvalid) {
-      setError(firstInvalid);
-      return;
-    }
-
     try {
       const items = await Promise.all(
-        files.map(async (file) => ({
-          id: crypto.randomUUID(),
-          name: file.name,
-          size: file.size,
-          imageDataUrl: await readImageDataUrl(file),
-          ocrText: "",
-          reviewed: false,
-          ocrStatus: "Menunggu OCR",
-          ocrProgress: 0,
-          status: "pending" as BatchStatus,
-        })),
+        files.map(async (file) => {
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.readAsDataURL(file);
+          });
+          return {
+            id: crypto.randomUUID(),
+            name: file.name,
+            size: file.size,
+            imageDataUrl: dataUrl,
+            ocrText: "",
+            reviewed: false,
+            ocrStatus: "Menunggu OCR",
+            ocrProgress: 0,
+            status: "pending" as BatchStatus,
+          };
+        })
       );
-
       if (items.length === 1) {
         setImagePreview(items[0].imageDataUrl);
         setImageName(items[0].name);
         setBatchItems([]);
         setQuestionText("");
         setIsTextReviewed(false);
-        setAnswer("");
-        setModelUsed("");
-        setUsageText("");
         void runSingleOcr(items[0].imageDataUrl);
-        return;
+      } else {
+        setImagePreview(null);
+        setImageName("");
+        setQuestionText("");
+        setBatchItems(items);
+        void runBatchOcr(items);
       }
-
-      setImagePreview(null);
-      setImageName("");
-      setQuestionText("");
-      setIsTextReviewed(false);
-      setBatchItems(items);
-      setAnswer("");
-      setModelUsed("Batch gambar");
-      setUsageText(`${items.length} file menunggu OCR`);
-      void runBatchOcr(items);
-    } catch (readError) {
-      setError(
-        readError instanceof Error
-          ? readError.message
-          : "Gambar gagal dibaca.",
-      );
+    } catch (err) {
+      setError("Gagal membaca file.");
     }
   }
 
-  function handleImageDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDragActive(false);
-    void handleFilesChange(event.dataTransfer.files);
-  }
-
-  function handleDragEnter(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDragActive(true);
-  }
-
-  function handleDragOver(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = "copy";
-    setIsDragActive(true);
-  }
-
-  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDragActive(false);
-  }
-
-  function handleDropzoneKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      fileInputRef.current?.click();
-    }
+  async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    void handleFilesChange(event.target.files);
   }
 
   function handleApiPresetChange(nextPreset: ApiPreset) {
     setApiPreset(nextPreset);
-
     if (nextPreset === "deepseek") {
       setBaseUrl("https://api.deepseek.com");
       setModel("deepseek-v4-pro");
       setUseDeepSeekThinking(true);
     } else {
-      setShowAdvancedApi(true);
       setUseServerKey(false);
     }
   }
 
   function handleAnswerQualityChange(nextQuality: AnswerQuality) {
     setAnswerQuality(nextQuality);
-
     if (nextQuality === "standard") {
       setReasoningEffort("high");
       setMaxTokens(1800);
       setTemperature(0.2);
-      return;
+    } else {
+      setReasoningEffort("max");
+      setMaxTokens(2600);
+      setTemperature(0.15);
     }
-
-    setReasoningEffort("max");
-    setMaxTokens(2600);
-    setTemperature(0.15);
   }
 
-  async function requestSolve(input: {
-    questionText: string;
-  }) {
+  async function requestSolve(text: string) {
     const response = await fetch("/api/tbi/solve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        questionText: input.questionText,
-        imageDataUrl: null,
+        questionText: text,
         imageMode: IMAGE_MODE,
         outputMode,
         questionType,
@@ -671,88 +425,31 @@ export function TbiTutorApp() {
         },
       }),
     });
-
     const data = (await response.json()) as SolveResponse;
-
-    if (!response.ok || data.error) {
-      throw new SolveRequestError(
-        data.error || `Request gagal dengan HTTP ${response.status}.`,
-        response.status,
-        Boolean(data.limitReached),
-      );
-    }
-
+    if (!response.ok || data.error) throw new SolveRequestError(data.error || "Gagal.", response.status, !!data.limitReached);
     return data;
   }
 
   async function solve() {
     setError("");
-    setBatchStopMessage("");
     setCopied(false);
     setIsSolving(true);
-
     try {
-      const textForSolve = questionText.trim();
-
-      if (!textForSolve && !imagePreview) {
-        setError("Isi soal belum ada. Paste teks soal atau upload gambar untuk OCR lokal.");
+      const text = questionText.trim();
+      if (!text) {
+        setError("Soal kosong.");
         return;
       }
-
-      if (!textForSolve) {
-        setError("Hasil OCR masih kosong. Cek gambar, lalu isi teks soal secara manual.");
-        return;
-      }
-
-      if (imagePreview && !isTextReviewed) {
-        setError("Cek hasil OCR dulu, lalu centang bahwa teks sudah sesuai sebelum dikirim ke DeepSeek.");
-        return;
-      }
-
-      const data = await requestSolve({
-        questionText: textForSolve,
-      });
-
+      const data = await requestSolve(text);
       const nextAnswer = data.answer || "";
       setAnswer(nextAnswer);
       setModelUsed(data.model || model);
       setUsageText(formatUsage(data.usage));
-      if (data.limitReached) {
-        setError(
-          "Provider berhenti karena batas token atau context. Hasil yang tampil mungkin belum lengkap.",
-        );
-      }
-      setHistory((current) => [
-        {
-          id: crypto.randomUUID(),
-          createdAt: new Date().toLocaleString("id-ID"),
-          questionPreview: buildQuestionPreview(
-            textForSolve || imageName || "Gambar visual",
-          ),
-          outputMode,
-          answer: nextAnswer,
-        },
-        ...current,
-      ]);
+      setHistory((c) => [{ id: crypto.randomUUID(), createdAt: new Date().toLocaleString("id-ID"), questionPreview: buildQuestionPreview(text), outputMode, answer: nextAnswer }, ...c]);
       setHistoryPage(0);
-
-      // Persist to Supabase for efficiency (text only)
-      void saveToTutorHistory({
-        domain: "tbi",
-        questionText: textForSolve,
-        answerText: nextAnswer,
-        metadata: {
-          outputMode,
-          model: data.model || model,
-          usage: data.usage
-        }
-      });
-    } catch (solveError) {
-      setError(
-        solveError instanceof Error
-          ? solveError.message
-          : "Gagal membuat pembahasan.",
-      );
+      void saveToTutorHistory({ domain: "tbi", questionText: text, answerText: nextAnswer, metadata: { outputMode, model: data.model || model, usage: data.usage } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal.");
     } finally {
       setIsSolving(false);
     }
@@ -760,144 +457,23 @@ export function TbiTutorApp() {
 
   async function solveBatch() {
     if (!batchItems.length) return;
-
-    setError("");
-    setBatchStopMessage("");
-    setCopied(false);
     setIsBatchSolving(true);
-
-    let workingItems = batchItems.map((item) => ({
-      ...item,
-      status: "pending" as BatchStatus,
-      answer: "",
-      error: "",
-      model: "",
-      usageText: "",
-      stopReason: "",
-    }));
-
-    const firstUnreviewed = workingItems.find(
-      (item) => !item.reviewed || !item.ocrText.trim(),
-    );
-    if (firstUnreviewed) {
-      setError(
-        `Cek dan tandai hasil OCR untuk ${firstUnreviewed.name} sebelum menjalankan batch.`,
-      );
-      setIsBatchSolving(false);
-      return;
-    }
-
+    let workingItems = batchItems.map((i) => ({ ...i, status: "pending" as BatchStatus }));
     setBatchItems(workingItems);
-    setAnswer("");
-    setModelUsed("Batch gambar");
-    setUsageText(`0/${workingItems.length} selesai`);
-
     try {
       for (const item of workingItems) {
-        workingItems = workingItems.map((current) =>
-          current.id === item.id
-            ? { ...current, status: "running" as BatchStatus }
-            : current,
-        );
+        workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: "running" as BatchStatus } : c);
         setBatchItems(workingItems);
-
         try {
-          const data = await requestSolve({
-            questionText: item.ocrText.trim(),
-          });
+          const data = await requestSolve(item.ocrText.trim());
           const nextAnswer = data.answer || "";
-
-          workingItems = workingItems.map((current) =>
-            current.id === item.id
-              ? {
-                  ...current,
-                  status: data.limitReached
-                    ? ("stopped" as BatchStatus)
-                    : ("done" as BatchStatus),
-                  answer: nextAnswer,
-                  model: data.model || model,
-                  usageText: formatUsage(data.usage),
-                  stopReason: data.stopReason || "",
-                }
-              : current,
-          );
+          workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: data.limitReached ? "stopped" : "done", answer: nextAnswer, model: data.model || model, usageText: formatUsage(data.usage) } as any : c);
           setBatchItems(workingItems);
           setAnswer(buildBatchAnswer(workingItems));
-
-          if (nextAnswer) {
-            setHistory((current) => [
-              {
-                id: crypto.randomUUID(),
-                createdAt: new Date().toLocaleString("id-ID"),
-                questionPreview: item.name,
-                outputMode,
-                answer: nextAnswer,
-              },
-              ...current,
-            ]);
-            setHistoryPage(0);
-
-            // Persist to Supabase for efficiency (text only)
-            void saveToTutorHistory({
-              domain: "tbi",
-              questionText: item.ocrText.trim(),
-              answerText: nextAnswer,
-              metadata: {
-                outputMode,
-                model: data.model || model,
-                usage: data.usage,
-                fileName: item.name
-              }
-            });
-          }
-
-          const doneCount = workingItems.filter(
-            (current) => current.status === "done",
-          ).length;
-          setUsageText(`${doneCount}/${workingItems.length} selesai`);
-
-          if (data.limitReached) {
-            setBatchStopMessage(
-              `Batch dihentikan di ${item.name} karena provider mencapai batas token atau context.`,
-            );
-            break;
-          }
-        } catch (itemError) {
-          const message =
-            itemError instanceof Error
-              ? itemError.message
-              : "File gagal diproses.";
-          const limitReached =
-            itemError instanceof SolveRequestError
-              ? itemError.limitReached || isLimitMessage(message)
-              : isLimitMessage(message);
-          const shouldStop =
-            limitReached ||
-            (itemError instanceof SolveRequestError &&
-              [400, 401, 403, 413].includes(itemError.status));
-
-          workingItems = workingItems.map((current) =>
-            current.id === item.id
-              ? {
-                  ...current,
-                  status: shouldStop
-                    ? ("stopped" as BatchStatus)
-                    : ("failed" as BatchStatus),
-                  error: message,
-                }
-              : current,
-          );
+          void saveToTutorHistory({ domain: "tbi", questionText: item.ocrText.trim(), answerText: nextAnswer, metadata: { outputMode, model: data.model || model, usage: data.usage, fileName: item.name } });
+        } catch (err) {
+          workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: "failed", error: err instanceof Error ? err.message : "Gagal." } as any : c);
           setBatchItems(workingItems);
-          setAnswer(buildBatchAnswer(workingItems));
-
-          if (shouldStop) {
-            setBatchStopMessage(
-              limitReached
-                ? `Batch dihentikan di ${item.name} karena batas token, context, atau ukuran payload tercapai.`
-                : `Batch dihentikan di ${item.name}: ${message}`,
-            );
-            break;
-          }
         }
       }
     } finally {
@@ -905,47 +481,26 @@ export function TbiTutorApp() {
     }
   }
 
-  function updateBatchOcrText(itemId: string, nextText: string) {
-    setBatchItems((current) =>
-      current.map((item) =>
-        item.id === itemId
-          ? { ...item, ocrText: nextText, reviewed: false, status: "review" }
-          : item,
-      ),
-    );
+  function updateBatchItem(id: string, updates: Partial<BatchItem>) {
+    setBatchItems((c) => c.map((i) => i.id === id ? { ...i, ...updates } : i));
   }
 
-  function updateBatchReviewed(itemId: string, reviewed: boolean) {
-    setBatchItems((current) =>
-      current.map((item) =>
-        item.id === itemId ? { ...item, reviewed, status: "review" } : item,
-      ),
-    );
+  function removeBatchItem(id: string) {
+    setBatchItems((c) => c.filter((i) => i.id !== id));
   }
 
-  async function copyAnswer() {
-    if (!answer) return;
-    await navigator.clipboard.writeText(answer);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
-  }
-
-  function downloadAnswer() {
-    if (!answer) return;
-    const blob = new Blob([answer], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "pembahasan-tbi.txt";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function loadHistoryItem(item: HistoryItem) {
-    setAnswer(item.answer);
-    setOutputMode(item.outputMode);
-    setModelUsed("Riwayat lokal");
-    setUsageText(item.createdAt);
+  function clearAll() {
+    setQuestionText("");
+    setCustomInstruction("");
+    setImagePreview(null);
+    setImageName("");
+    setIsTextReviewed(false);
+    setBatchItems([]);
+    setAnswer("");
+    setError("");
+    setModelUsed("");
+    setUsageText("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function loadCloudHistoryData() {
@@ -959,323 +514,53 @@ export function TbiTutorApp() {
     }
   }
 
-  function loadCloudHistoryItem(item: CloudHistoryItem) {
-    setAnswer(item.answer_text);
-    if (item.metadata?.outputMode) {
-      setOutputMode(item.metadata.outputMode);
-    }
-    setModelUsed(item.metadata?.model || "Riwayat cloud");
-    setUsageText(new Date(item.created_at).toLocaleString("id-ID"));
-  }
-
   function moveHistoryPage(direction: -1 | 1) {
     if (historyMode === "local") {
       if (!history.length) return;
-      setHistoryPage((current) =>
-        Math.min(Math.max(current + direction, 0), history.length - 1),
-      );
+      setHistoryPage((current) => Math.min(Math.max(current + direction, 0), history.length - 1));
     } else {
       if (!cloudHistory.length) return;
-      setCloudHistoryPage((current) =>
-        Math.min(Math.max(current + direction, 0), cloudHistory.length - 1),
-      );
+      setCloudHistoryPage((current) => Math.min(Math.max(current + direction, 0), cloudHistory.length - 1));
     }
   }
 
-  function confirmHistoryDelete() {
-    if (!pendingHistoryDelete) return;
-
-    if (pendingHistoryDelete.kind === "all") {
-      setHistory([]);
-      setHistoryPage(0);
-      setPendingHistoryDelete(null);
-      return;
-    }
-
-    const nextHistory = history.filter(
-      (item) => item.id !== pendingHistoryDelete.id,
-    );
-    setHistory(nextHistory);
-    setHistoryPage((current) =>
-      Math.min(current, Math.max(nextHistory.length - 1, 0)),
-    );
-    setPendingHistoryDelete(null);
-  }
-
-  function clearAll() {
-    setQuestionText("");
-    setCustomInstruction("");
-    setImagePreview(null);
-    setImageName("");
-    setIsTextReviewed(false);
-    setOcrProgress(0);
-    setOcrStatus("");
-    setIsOcrRunning(false);
-    setBatchItems([]);
-    setBatchStopMessage("");
-    setAnswer("");
-    setError("");
-    setModelUsed("");
-    setUsageText("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  function downloadAnswer() {
+    if (!answer) return;
+    const blob = new Blob([answer], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "pembahasan-tbi.txt";
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
     <main className="min-h-dvh bg-paper text-[#17201c] lg:h-dvh lg:overflow-hidden">
       <div className="mx-auto flex min-h-dvh w-full max-w-none flex-col px-4 py-3 sm:px-6 lg:h-dvh lg:min-h-0 lg:py-4">
-        <header className="sticky top-0 z-40 flex shrink-0 flex-col gap-3 rounded-xl border border-forest/5 bg-white/60 pb-3 p-3 backdrop-blur-xl md:flex-row md:items-center md:justify-between shadow-premium mb-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="grid size-11 place-items-center rounded-xl bg-forest text-white shadow-premium transition hover:bg-forest/90 active:scale-95"
-              title="Kembali ke Beranda"
-            >
-              <Home size={24} aria-hidden="true" />
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="hidden size-10 place-items-center rounded-xl bg-forest/5 text-forest sm:grid shadow-inner">
-                <BrainCircuit size={20} aria-hidden="true" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tight text-forest">
-                  Pengajar TBI
-                </h1>
-                <p className="text-xs font-medium leading-5 text-[#45544e]">
-                  Workspace Tutor Bahasa Inggris — Persiapantubel
-                </p>
-              </div>
-            </div>
-          </div>
+        <Header 
+          title="Pengajar TBI"
+          subtitle="Workspace Tutor Bahasa Inggris — Persiapantubel"
+          switchTarget="/tpa"
+          switchLabel="Ke TPA"
+          onSampleClick={() => setQuestionText(sampleQuestion)}
+          onSettingsToggle={() => setShowSettings(!showSettings)}
+        />
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              href="/tpa"
-              className="inline-flex h-11 items-center gap-2 rounded-lg border border-forest/10 bg-forest/5 px-4 text-sm font-semibold text-forest shadow-sm transition hover:bg-forest/10 active:scale-95"
-              title="Pindah ke Pengajar TPA"
-            >
-              <ArrowRightLeft size={18} aria-hidden="true" />
-              Ke TPA
-            </Link>
-            <button
-              type="button"
-              onClick={() => setQuestionText(sampleQuestion)}
-              className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#c8d0cb] bg-white px-4 text-sm font-semibold text-[#27332e] shadow-sm transition hover:bg-[#f8faf9] active:scale-95"
-            >
-              <FileText size={18} aria-hidden="true" />
-              Contoh
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSettings((current) => !current)}
-              className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#c8d0cb] bg-white px-4 text-sm font-semibold text-[#27332e] shadow-sm transition hover:bg-[#f8faf9] active:scale-95"
-            >
-              <Settings2 size={18} aria-hidden="true" />
-              API
-            </button>
-          </div>
-        </header>
-
-        {showSettings ? (
-          <section className="mt-4 rounded-lg border border-[#cfd8d2] bg-white p-4 shadow-sm">
-            <div className="mb-4 flex flex-col gap-1">
-              <h2 className="text-base font-semibold text-[#17201c]">
-                Pengaturan AI
-              </h2>
-              <p className="text-sm text-[#45544e]">
-                Pilih layanan AI dan kunci akses yang dipakai untuk membuat
-                pembahasan.
-              </p>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <label className="grid gap-2 text-sm font-medium text-[#27332e]">
-                Layanan AI
-                <select
-                  value={apiPreset}
-                  onChange={(event) =>
-                    handleApiPresetChange(event.target.value as ApiPreset)
-                  }
-                  className="h-11 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                >
-                  <option value="deepseek">DeepSeek V4 Pro</option>
-                </select>
-                <span className="text-xs font-normal leading-5 text-[#45544e]">
-                  Website hanya mengirim teks final ke DeepSeek API.
-                </span>
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium text-[#27332e]">
-                Kualitas jawaban
-                <select
-                  value={answerQuality}
-                  onChange={(event) =>
-                    handleAnswerQualityChange(event.target.value as AnswerQuality)
-                  }
-                  className="h-11 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                >
-                  <option value="standard">Standar, cepat, dan ringkas</option>
-                  <option value="thorough">Lebih teliti untuk soal sulit</option>
-                </select>
-                <span className="text-xs font-normal leading-5 text-[#45544e]">
-                  Gunakan Standar untuk mayoritas soal. Pilih Lebih teliti saat
-                  soal panjang atau rumit.
-                </span>
-              </label>
-            </div>
-
-            <div className="mt-4 rounded-md border border-[#d8e2dc] bg-[#f7faf8] p-3">
-              <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
-                <button
-                  type="button"
-                  onClick={() => setUseServerKey(true)}
-                  className={`min-h-16 rounded-md border px-3 text-left transition ${
-                    useServerKey
-                      ? "border-[#0f6b57] bg-[#e4f3ee] text-[#0d4f42]"
-                      : "border-[#c8d0cb] bg-white text-[#3b4741] hover:bg-[#eef4f1]"
-                  }`}
-                >
-                  <span className="block text-sm font-semibold">
-                    Pakai kunci yang sudah tersimpan
-                  </span>
-                  <span className="block text-xs leading-5 text-[#45544e]">
-                    Pilihan paling mudah untuk komputer ini.
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUseServerKey(false)}
-                  className={`min-h-16 rounded-md border px-3 text-left transition ${
-                    !useServerKey
-                      ? "border-[#0f6b57] bg-[#e4f3ee] text-[#0d4f42]"
-                      : "border-[#c8d0cb] bg-white text-[#3b4741] hover:bg-[#eef4f1]"
-                  }`}
-                >
-                  <span className="block text-sm font-semibold">
-                    Masukkan kunci baru
-                  </span>
-                  <span className="block text-xs leading-5 text-[#45544e]">
-                    Pakai ini jika ingin mencoba kunci DeepSeek lain.
-                  </span>
-                </button>
-              </div>
-
-              <label className="mt-3 grid gap-2 text-sm font-medium text-[#27332e]">
-                Kunci API
-                <div className="relative">
-                  <KeyRound
-                    size={16}
-                    aria-hidden="true"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#45544e]"
-                  />
-                  <input
-                    type="password"
-                    value={apiKey}
-                    disabled={useServerKey}
-                    onChange={(event) => setApiKey(event.target.value)}
-                    placeholder={
-                      useServerKey
-                        ? "Kunci tersimpan sedang dipakai"
-                        : "Tempel kunci API di sini"
-                    }
-                    className="h-11 w-full rounded-md border border-[#c8d0cb] bg-white px-9 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce] disabled:bg-[#eef1ef]"
-                  />
-                </div>
-                <span className="text-xs font-normal leading-5 text-[#45544e]">
-                  Kunci baru hanya dipakai untuk permintaan ini dan tidak
-                  disimpan di riwayat.
-                </span>
-              </label>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => setShowAdvancedApi((current) => !current)}
-                className="inline-flex h-10 w-fit items-center rounded-md border border-[#c8d0cb] bg-white px-3 text-sm font-medium text-[#27332e] transition hover:bg-[#eef4f1]"
-              >
-                {showAdvancedApi
-                  ? "Sembunyikan pengaturan lanjutan"
-                  : "Tampilkan pengaturan lanjutan"}
-              </button>
-
-              {showAdvancedApi ? (
-                <div className="grid gap-3 rounded-md border border-[#e1e6e2] bg-white p-3 lg:grid-cols-[1fr_1fr_180px_180px]">
-                  <label className="grid gap-1 text-sm font-medium text-[#27332e]">
-                    Alamat layanan
-                    <input
-                      value={baseUrl}
-                      onChange={(event) => {
-                        setBaseUrl(event.target.value);
-                      }}
-                      className="h-10 rounded-md border border-[#c8d0cb] bg-white px-3 font-mono text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                    />
-                  </label>
-                  <label className="grid gap-1 text-sm font-medium text-[#27332e]">
-                    Nama model
-                    <input
-                      value={model}
-                      onChange={(event) => {
-                        setModel(event.target.value);
-                      }}
-                      className="h-10 rounded-md border border-[#c8d0cb] bg-white px-3 font-mono text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                    />
-                  </label>
-                  <label className="grid gap-1 text-sm font-medium text-[#27332e]">
-                    Ketelitian mesin
-                    <select
-                      value={reasoningEffort}
-                      onChange={(event) =>
-                        setReasoningEffort(event.target.value as ReasoningEffort)
-                      }
-                      className="h-10 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                    >
-                      <option value="high">Tinggi</option>
-                      <option value="max">Maksimal</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1 text-sm font-medium text-[#27332e]">
-                    Panjang jawaban
-                    <input
-                      type="number"
-                      min={500}
-                      max={12000}
-                      value={maxTokens}
-                      onChange={(event) =>
-                        setMaxTokens(Number(event.target.value))
-                      }
-                      className="h-10 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                    />
-                  </label>
-                  <label className="flex h-10 items-center gap-2 rounded-md border border-[#c8d0cb] bg-[#f7faf8] px-3 text-sm font-medium text-[#27332e] lg:col-span-2">
-                    <input
-                      type="checkbox"
-                      checked={useDeepSeekThinking}
-                      onChange={(event) =>
-                        setUseDeepSeekThinking(event.target.checked)
-                      }
-                      className="size-4 accent-[#0f6b57]"
-                    />
-                    Aktifkan mode berpikir mendalam untuk DeepSeek
-                  </label>
-                  <label className="grid gap-1 text-sm font-medium text-[#27332e] lg:col-span-2">
-                    Kreativitas jawaban
-                    <input
-                      type="number"
-                      step={0.1}
-                      min={0}
-                      max={1}
-                      value={temperature}
-                      onChange={(event) =>
-                        setTemperature(Number(event.target.value))
-                      }
-                      className="h-10 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
-                    />
-                  </label>
-                </div>
-              ) : null}
-            </div>
-          </section>
-        ) : null}
+        {showSettings && (
+          <SettingsPanel 
+            apiPreset={apiPreset} onApiPresetChange={handleApiPresetChange}
+            answerQuality={answerQuality} onAnswerQualityChange={handleAnswerQualityChange}
+            useServerKey={useServerKey} onUseServerKeyChange={setUseServerKey}
+            apiKey={apiKey} onApiKeyChange={setApiKey}
+            baseUrl={baseUrl} onBaseUrlChange={setBaseUrl}
+            model={model} onModelChange={setModel}
+            reasoningEffort={reasoningEffort} onReasoningEffortChange={setReasoningEffort}
+            maxTokens={maxTokens} onMaxTokensChange={setMaxTokens}
+            useDeepSeekThinking={useDeepSeekThinking} onUseDeepSeekThinkingChange={setUseDeepSeekThinking}
+            temperature={temperature} onTemperatureChange={setTemperature}
+          />
+        )}
 
         <div className="grid flex-1 gap-6 py-2 lg:min-h-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)] 2xl:grid-cols-[minmax(760px,1.35fr)_minmax(520px,0.9fr)]">
           <section className="flex min-h-[720px] flex-col rounded-2xl border border-forest/10 bg-white shadow-premium lg:min-h-0 lg:overflow-auto 2xl:overflow-hidden">
@@ -1287,9 +572,7 @@ export function TbiTutorApp() {
                     type="button"
                     onClick={() => setOutputMode(mode)}
                     className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all md:flex-none ${
-                      outputMode === mode
-                        ? "bg-white text-forest shadow-premium"
-                        : "text-[#45544e] hover:bg-white/50 hover:text-forest"
+                      outputMode === mode ? "bg-white text-forest shadow-premium" : "text-[#45544e] hover:bg-white/50 hover:text-forest"
                     }`}
                   >
                     {outputModeLabels[mode]}
@@ -1298,44 +581,33 @@ export function TbiTutorApp() {
               </div>
             </div>
 
-
             <div className="grid shrink-0 gap-3 p-3 md:grid-cols-[220px_minmax(260px,1fr)]">
-              <label className="grid gap-1 text-sm font-medium text-[#27332e]">
+              <label className="grid gap-1 text-sm font-bold text-forest">
                 Tipe soal
                 <select
                   value={questionType}
-                  onChange={(event) =>
-                    setQuestionType(event.target.value as TbiQuestionType)
-                  }
-                  className="h-10 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
+                  onChange={(e) => setQuestionType(e.target.value as TbiQuestionType)}
+                  className="h-10 rounded-lg border border-forest/10 bg-white px-3 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/10"
                 >
                   {tbiQuestionTypes.map((item) => (
-                    <option key={item} value={item}>
-                      {item === "auto" ? "Auto" : item}
-                    </option>
+                    <option key={item} value={item}>{item === "auto" ? "Auto" : item}</option>
                   ))}
                 </select>
               </label>
 
-              <div className="grid gap-1 rounded-md border border-[#d7ded9] bg-[#f8faf9] p-3 text-sm text-[#27332e]">
-                <span className="font-medium">Mode gambar</span>
-                <span className="text-xs leading-5 text-[#45544e]">
-                  OCR lokal, lalu teks wajib dicek sebelum dikirim.
-                </span>
+              <div className="grid gap-1 rounded-xl border border-forest/5 bg-forest/[0.01] p-3 text-sm text-forest">
+                <span className="font-bold">Mode gambar</span>
+                <span className="text-xs font-medium text-[#45544e]">OCR lokal, cek teks wajib.</span>
               </div>
-              {baseUrl.includes("deepseek.com") ? (
-                <div className="flex gap-2 rounded-md border border-[#e0b75c] bg-[#fff7e2] p-3 text-sm leading-5 text-[#6a4d12] md:col-span-2">
-                  <AlertTriangle
-                    size={17}
-                    aria-hidden="true"
-                    className="mt-0.5 shrink-0"
-                  />
-                  <p>
-                    DeepSeek dipakai sebagai text model. Gambar dibaca OCR
-                    lokal, lalu hanya teks yang sudah dicek yang dikirim.
-                  </p>
-                </div>
-              ) : null}
+              
+              <AnimatePresence>
+                {error && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-800 md:col-span-2">
+                    <AlertTriangle size={17} className="mt-0.5 shrink-0" />
+                    <p className="font-medium">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="grid min-h-0 flex-1 gap-6 overflow-auto px-4 pb-4 xl:grid-cols-[minmax(300px,0.9fr)_minmax(320px,1.1fr)] 2xl:grid-cols-[minmax(360px,0.9fr)_minmax(460px,1.1fr)]">
@@ -1343,744 +615,95 @@ export function TbiTutorApp() {
                 Teks soal / hasil OCR
                 <textarea
                   value={questionText}
-                  onChange={(event) => {
-                    setQuestionText(event.target.value);
-                    if (imagePreview) setIsTextReviewed(false);
-                  }}
-                  placeholder="Paste soal, atau cek dan koreksi hasil OCR dari gambar di sini."
-                  className="min-h-[210px] flex-1 resize-none rounded-xl border border-forest/10 bg-forest/[0.01] p-4 text-base leading-relaxed text-[#17201c] outline-none transition focus:border-gold focus:ring-4 focus:ring-gold/10 2xl:min-h-[260px]"
+                  onChange={(e) => { setQuestionText(e.target.value); setIsTextReviewed(true); }}
+                  placeholder="Paste soal di sini..."
+                  className="min-h-[210px] flex-1 resize-none rounded-xl border border-forest/10 bg-forest/[0.01] p-4 text-base leading-relaxed text-[#17201c] outline-none focus:border-gold focus:ring-4 focus:ring-gold/10"
                 />
               </label>
 
               <div className="flex min-h-0 flex-col gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(event) =>
-                    void handleFilesChange(event.currentTarget.files)
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm font-medium text-[#27332e] transition hover:bg-[#eef4f1]"
-                >
-                  <Upload size={16} aria-hidden="true" />
-                  Upload gambar untuk OCR
+                <input type="file" accept="image/*" multiple ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-forest/10 bg-white px-4 text-sm font-bold text-forest transition hover:bg-forest/5 shadow-sm">
+                  <Upload size={18} /> Upload Gambar
                 </button>
+                <Dropzone 
+                  imagePreview={imagePreview} isDragActive={isDragActive} batchCount={batchItems.length}
+                  fileInputRef={fileInputRef} onDropzoneClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+                  onDragEnter={(e) => { e.preventDefault(); setIsDragActive(true); }}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragActive(true); }}
+                  onDragLeave={() => setIsDragActive(false)}
+                  onDrop={(e) => { e.preventDefault(); setIsDragActive(false); void handleFilesChange(e.dataTransfer.files); }}
+                  onRemoveImage={(e) => { e.stopPropagation(); setImagePreview(null); }}
+                />
+              </div>
+            </div>
 
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => fileInputRef.current?.click()}
-                  onKeyDown={handleDropzoneKeyDown}
-                  onDragEnter={handleDragEnter}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleImageDrop}
-                  className={`relative grid min-h-[150px] flex-1 cursor-pointer place-items-center overflow-hidden rounded-md border border-dashed bg-[#f8faf9] transition 2xl:min-h-[220px] ${
-                    isDragActive
-                      ? "border-[#0f6b57] bg-[#e4f3ee] ring-2 ring-[#b9d7ce]"
-                      : "border-[#bac5bd] hover:bg-[#f2f6f4]"
-                  }`}
-                  aria-label="Upload atau drag and drop gambar soal"
-                >
-                  {imagePreview ? (
-                    <>
-                      <Image
-                        src={imagePreview}
-                        alt="Preview soal"
-                        fill
-                        unoptimized
-                        sizes="(min-width: 1280px) 46vw, 260px"
-                        className="object-contain p-2"
-                      />
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setImagePreview(null);
-                        }}
-                        className="absolute right-2 top-2 grid size-8 place-items-center rounded-xl bg-forest/80 text-white shadow-premium backdrop-blur-md transition hover:bg-forest active:scale-90"
-                        aria-label="Hapus gambar"
-                      >
-                        <X size={16} aria-hidden="true" />
-                      </button>
-                    </>
-                  ) : batchItems.length ? (
-                    <div className="grid justify-items-center gap-3 px-4 text-center text-sm">
-                      <div className="grid size-14 place-items-center rounded-2xl bg-forest/5 text-forest shadow-inner">
-                        <ImageIcon size={30} aria-hidden="true" />
-                      </div>
-                      <div className="grid gap-1">
-                        <span className="font-bold text-forest">
-                          {batchItems.length} gambar siap OCR
-                        </span>
-                        <span className="text-xs font-medium text-[#45544e]">
-                          Cek hasil OCR tiap item sebelum generate.
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid justify-items-center gap-3 px-4 text-center text-sm">
-                      <div className="grid size-14 place-items-center rounded-2xl bg-white text-forest shadow-premium">
-                        <ImageIcon size={30} aria-hidden="true" />
-                      </div>
-                      <div className="grid gap-1">
-                        <span className="font-bold text-forest">
-                          Tarik gambar ke sini
-                        </span>
-                        <span className="text-xs font-medium text-[#45544e]">
-                          atau klik untuk memilih file
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {imageName && !batchItems.length ? (
-                  <div className="grid gap-2 rounded-md border border-[#d8e2dc] bg-[#f7faf8] p-2 text-xs leading-5 text-[#59655e] 2xl:p-3">
-                    <span className="block font-medium text-[#27332e]">
-                      {imageName}
-                    </span>
-                    <div className="h-2 overflow-hidden rounded-md bg-[#e7ece8] relative">
-                      <motion.div
-                        className="absolute inset-0 bg-[#225e76] transition-all"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.round(ocrProgress * 100)}%` }}
-                        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as any }}
-                      />
-                      {isOcrRunning && (
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                          animate={{ x: ["-100%", "100%"] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                        />
-                      )}
-                    </div>
-                    <div className="h-5 overflow-hidden">
-                      <AnimatePresence mode="wait">
-                        <motion.span
-                          key={ocrStatus}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          transition={{ duration: 0.2 }}
-                          className="block text-[#59655e]"
-                        >
-                          {ocrStatus || "Menunggu OCR lokal."}
-                        </motion.span>
-                      </AnimatePresence>
-                    </div>
-                    <label className="flex items-start gap-2 rounded-md border border-[#c8d0cb] bg-white p-2 text-sm font-medium text-[#27332e]">
-                      <input
-                        type="checkbox"
-                        checked={isTextReviewed}
-                        disabled={isOcrRunning || !questionText.trim()}
-                        onChange={(event) =>
-                          setIsTextReviewed(event.target.checked)
-                        }
-                        className="mt-1 size-4 accent-[#0f6b57]"
-                      />
-                      <span>
-                        Saya sudah cek dan koreksi hasil OCR.
-                      </span>
-                    </label>
-                  </div>
-                ) : null}
-
-                {batchItems.length ? (
-                  <div className="max-h-44 overflow-auto rounded-md border border-[#d8e2dc] bg-[#f7faf8]">
-                    {batchItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="grid gap-1 border-b border-[#e2e8e4] p-3 last:border-b-0"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="line-clamp-1 text-sm font-medium text-[#27332e]">
-                            {item.name}
-                          </span>
-                          <span
-                            className={`shrink-0 rounded px-2 py-1 text-xs font-medium ${
-                              item.status === "done"
-                                ? "bg-[#e4f3ee] text-[#0d4f42]"
-                                : item.status === "failed" ||
-                                    item.status === "stopped"
-                                  ? "bg-[#fff0ed] text-[#813126]"
-                                  : item.status === "ocr" || item.status === "running"
-                                    ? "bg-[#e7f0f6] text-[#225e76] relative overflow-hidden"
-                                    : "bg-white text-[#45544e]"
-                                }`}
-                                >
-                                {batchStatusLabels[item.status]}
-                                {(item.status === "ocr" || item.status === "running") && (
-                                <motion.div
-                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                                animate={{ x: ["-100%", "100%"] }}
-                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                                />
-                                )}
-                                </span>
-                                </div>
-                                <span className="text-xs text-[#45544e]">
-                                {formatFileSize(item.size)}
-                                {typeof item.ocrProgress === "number"
-                                ? ` · OCR ${Math.round(item.ocrProgress * 100)}%`
-                                : ""}
-                                {item.usageText ? ` · ${item.usageText}` : ""}
-                                </span>
-                                {item.status === "ocr" && (
-                                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-[#e7ece8]">
-                                <motion.div
-                                className="h-full bg-[#225e76]"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.round((item.ocrProgress || 0) * 100)}%` }}
-                                />
-                                </div>
-                                )}
-                                {item.error ? (
-                                <span className="text-xs leading-5 text-[#813126]">
-                                {item.error}
-                                </span>
-                                ) : null}
-                                </div>
-                                ))}
-                                </div>
-                                ) : null}
-                                </div>
-                                </div>
-
-                                {batchItems.length ? (
-                                <section className="grid max-h-60 shrink-0 gap-3 overflow-auto border-t border-[#e1e6e2] p-3">
-                                <div className="flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                <h2 className="text-base font-semibold text-[#17201c]">
-                                Review OCR batch
-                                </h2>
-                                <div className="text-xs font-medium text-[#225e76] bg-[#e7f0f6] px-2 py-0.5 rounded-full">
-                                {batchItems.filter(i => i.reviewed).length} / {batchItems.length} Selesai
-                                </div>
-                                </div>
-                                <p className="text-sm leading-6 text-[#45544e]">
-                                Cek titik-titik, underline pilihan A-D, huruf pilihan
-                                jawaban, hyphen, dan punctuation. Item
-                                hanya dikirim ke DeepSeek setelah dicentang.
-                                </p>
-                                </div>
-
-                                <div className="grid gap-3">
-                                {batchItems.map((item, index) => (
-                                <div
-                                key={item.id}
-                                className="rounded-md border border-[#d8e2dc] bg-[#f8faf9] p-3"
-                                >
-                                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                <div className="h-10">
-                                <h3 className="text-sm font-semibold text-[#27332e]">
-                                File {index + 1}: {item.name}
-                                </h3>
-                                <AnimatePresence mode="wait">
-                                <motion.p
-                                key={item.ocrStatus || item.status}
-                                initial={{ opacity: 0, x: -5 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 5 }}
-                                className="text-xs leading-5 text-[#45544e]"
-                                >
-                                {item.ocrStatus || batchStatusLabels[item.status]}
-                                </motion.p>
-                                </AnimatePresence>
-                                </div>
-                                <motion.span
-                                animate={item.status === "ocr" ? { opacity: [1, 0.5, 1] } : {}}
-                                transition={{ duration: 1.5, repeat: Infinity }}
-                                className={`rounded px-2 py-1 text-xs font-medium ${
-                                item.reviewed
-                                ? "bg-[#e4f3ee] text-[#0d4f42]"
-                                : item.status === "ocr"
-                                ? "bg-[#e7f0f6] text-[#225e76]"
-                                : "bg-[#fff7e2] text-[#6a4d12]"
-                                }`}
-                                >
-                                {item.reviewed ? "Sudah dicek" : item.status === "ocr" ? "Sedang OCR..." : "Perlu dicek"}
-                                </motion.span>
-                                </div>
-                                <div className="relative">
-                                <textarea
-                                value={item.ocrText}
-                                onChange={(event) =>
-                                updateBatchOcrText(item.id, event.target.value)
-                                }
-                                placeholder="Hasil OCR muncul di sini. Jika kosong atau salah, ketik ulang soal dari gambar."
-                                className={`min-h-28 w-full resize-y rounded-md border border-[#c8d0cb] bg-white p-3 text-sm leading-6 outline-none transition-all focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce] ${
-                                item.status === "ocr" ? "opacity-50 grayscale-[0.5]" : ""
-                                }`}
-                                />
-                                {item.status === "ocr" && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
-                                <div className="flex flex-col items-center gap-2">
-                                <Loader2 className="h-6 w-6 animate-spin text-[#225e76]" />
-                                <span className="text-[10px] font-medium text-[#225e76] uppercase tracking-wider">Processing AI...</span>
-                                </div>
-                                </div>
-                                )}
-                                </div>
-
-                      <label className="mt-2 flex items-start gap-2 text-sm font-medium text-[#27332e]">
-                        <input
-                          type="checkbox"
-                          checked={item.reviewed}
-                          disabled={!item.ocrText.trim() || item.status === "ocr"}
-                          onChange={(event) =>
-                            updateBatchReviewed(item.id, event.target.checked)
-                          }
-                          className="mt-1 size-4 accent-[#0f6b57]"
-                        />
-                        <span>
-                          Teks OCR file ini sudah saya cek dan koreksi.
-                        </span>
-                      </label>
-                      <AnimatePresence>
-                        {item.error && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="mt-2 flex items-start gap-2 rounded-lg border border-rose-100 bg-rose-50/30 p-2 text-xs text-rose-800"
-                          >
-                            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-rose-500" />
-                            <p>{item.error}</p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            <div className="grid shrink-0 gap-2 px-3 pb-3">
-              <label className="grid gap-1 text-sm font-medium text-[#27332e]">
+            <div className="grid gap-2 px-3 pb-3">
+              <label className="grid gap-1 text-sm font-bold text-forest">
                 Instruksi tambahan
                 <input
+                  placeholder="Opsional: misalnya bahas lebih singkat..."
                   value={customInstruction}
-                  onChange={(event) => setCustomInstruction(event.target.value)}
-                  placeholder="Opsional: misalnya bahas lebih singkat, cek kunci lama, atau jelaskan untuk siswa pemula."
-                  className="h-11 rounded-md border border-[#c8d0cb] bg-white px-3 text-sm outline-none focus:border-[#0f6b57] focus:ring-2 focus:ring-[#b9d7ce]"
+                  onChange={(e) => setCustomInstruction(e.target.value)}
+                  className="h-11 rounded-lg border border-forest/10 bg-white px-3 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/10"
                 />
               </label>
             </div>
 
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, y: 10 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: 10 }}
-                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as any }}
-                  className="mx-4 mb-4 overflow-hidden"
-                >
-                  <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-3 text-sm text-rose-900 shadow-sm backdrop-blur-sm">
-                    <motion.div
-                      animate={{ x: [0, -2, 2, -2, 2, 0] }}
-                      transition={{ duration: 0.4, delay: 0.1 }}
-                      className="shrink-0"
-                    >
-                      <AlertTriangle size={18} aria-hidden="true" className="text-rose-500" />
-                    </motion.div>
-                    <p className="grow leading-relaxed">{error}</p>
-                    <button
-                      type="button"
-                      onClick={() => setError("")}
-                      className="shrink-0 rounded-md p-0.5 hover:bg-rose-100/50 transition-colors"
-                      aria-label="Tutup pesan error"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <BatchReviewPanel 
+              batchItems={batchItems} batchStatusLabels={batchStatusLabels}
+              onUpdateItem={updateBatchItem} onRemoveItem={removeBatchItem}
+              formatFileSize={formatFileSize} instructionText="Cek hasil OCR sebelum generate."
+            />
 
-            <AnimatePresence>
-              {batchStopMessage && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, y: 10 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: 10 }}
-                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as any }}
-                  className="mx-4 mb-4 overflow-hidden"
-                >
-                  <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50/50 p-3 text-sm text-amber-900 shadow-sm backdrop-blur-sm">
-                    <motion.div
-                      animate={{ x: [0, -1, 1, -1, 1, 0] }}
-                      transition={{ duration: 0.4, delay: 0.1 }}
-                      className="shrink-0"
-                    >
-                      <AlertTriangle size={18} aria-hidden="true" className="text-amber-500" />
-                    </motion.div>
-                    <p className="grow leading-relaxed">{batchStopMessage}</p>
-                    <button
-                      type="button"
-                      onClick={() => setBatchStopMessage("")}
-                      className="shrink-0 rounded-md p-0.5 hover:bg-amber-100/50 transition-colors"
-                      aria-label="Tutup pesan"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <div className="sticky bottom-0 z-20 mt-auto flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-forest/10 bg-white/80 p-4 backdrop-blur-lg">
-              <button
-                type="button"
-                onClick={clearAll}
-                className="inline-flex h-12 items-center gap-2 rounded-xl border border-forest/10 bg-white px-5 text-sm font-bold text-forest transition hover:bg-forest/5 active:scale-95"
-              >
-                <Eraser size={18} aria-hidden="true" />
-                Bersihkan
-              </button>
-              <button
-                type="button"
-                onClick={batchItems.length ? solveBatch : solve}
-                disabled={batchItems.length ? !canSolveBatch : !canSolveSingle}
-                className="inline-flex h-12 min-w-44 items-center justify-center gap-3 rounded-xl bg-gold px-6 text-sm font-black text-black shadow-premium transition hover:bg-gold/90 hover:shadow-premium-lg disabled:cursor-not-allowed disabled:bg-gold/40 disabled:text-black/40 disabled:shadow-none active:scale-95"
-              >
-                {isSolving || isBatchSolving ? (
-                  <Loader2 size={20} className="animate-spin" aria-hidden="true" />
-                ) : (
-                  <Send size={18} aria-hidden="true" />
-                )}
-                {batchItems.length ? "Generate batch" : "Generate"}
-              </button>
-            </div>
+            <StickyActionPanel 
+              onClearAll={clearAll} onGenerate={batchItems.length ? solveBatch : solve}
+              isGenerating={isSolving || isBatchSolving} isBatch={batchItems.length > 0}
+              disabled={batchItems.length ? !canSolveBatch : !canSolveSingle}
+            />
           </section>
 
-          <aside className="grid min-h-[720px] grid-rows-[minmax(0,1fr)_auto] gap-3 lg:min-h-0">
-            <section className="flex min-h-0 flex-col rounded-lg border border-[#cfd8d2] bg-white shadow-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-[#e1e6e2] p-3">
-                <div>
-                  <h2 className="text-base font-semibold text-[#17201c]">Output</h2>
-                  <p className="text-sm text-[#45544e]">
-                    {modelUsed ? `${modelUsed}${usageText ? ` · ${usageText}` : ""}` : "Belum ada hasil"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={copyAnswer}
-                    disabled={!answer}
-                    className="grid size-10 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:text-[#a3aaa6]"
-                    aria-label="Copy output"
-                    title="Copy output"
-                  >
-                    {copied ? (
-                      <Check size={17} aria-hidden="true" />
-                    ) : (
-                      <Copy size={17} aria-hidden="true" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={downloadAnswer}
-                    disabled={!answer}
-                    className="grid size-10 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#eef4f1] disabled:text-[#a3aaa6]"
-                    aria-label="Download output"
-                    title="Download output"
-                  >
-                    <Download size={17} aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="min-h-0 flex-1 overflow-auto p-4 lg:p-6">
-                <AnimatePresence mode="wait">
-                  {answer ? (
-                    <motion.div
-                      key={answer}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
-                    >
-                      <pre
-                        className={`whitespace-pre-wrap break-words text-[15px] leading-relaxed text-[#1f2b25] ${
-                          outputMode === "docx"
-                            ? "font-premium-serif text-lg leading-loose"
-                            : "font-sans"
-                        }`}
-                      >
-                        {answer}
-                      </pre>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="grid h-full min-h-0 place-items-center rounded-2xl border border-dashed border-forest/10 bg-forest/[0.01] p-8 text-center text-sm text-[#45544e]"
-                    >
-                      <div className="grid justify-items-center gap-4">
-                        <div className="grid size-16 place-items-center rounded-2xl bg-white text-forest shadow-premium">
-                          <Clipboard size={32} aria-hidden="true" />
-                        </div>
-                        <div className="grid gap-1">
-                          <span className="font-bold text-forest">
-                            Siap Menganalisa
-                          </span>
-                          <p className="max-w-[200px] text-xs leading-5 text-[#45544e]">
-                            Hasil pembahasan premium Anda akan muncul di sini.
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-forest/10 bg-white shadow-premium">
-              <div className="flex flex-col gap-3 border-b border-forest/5 bg-forest/[0.02] p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <History size={18} aria-hidden="true" className="text-forest" />
-                    <h2 className="text-sm font-bold text-forest">
-                      {historyMode === "local" ? "RIWAYAT LOKAL" : "RIWAYAT CLOUD"}
-                    </h2>
-                  </div>
-                  <div className="flex rounded-lg bg-forest/5 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setHistoryMode("local")}
-                      className={`rounded-md px-3 py-1 text-[10px] font-black uppercase tracking-wider transition ${
-                        historyMode === "local"
-                          ? "bg-white text-forest shadow-premium"
-                          : "text-[#45544e] hover:text-forest"
-                      }`}
-                    >
-                      Lokal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHistoryMode("cloud");
-                        if (cloudHistory.length === 0) {
-                          void loadCloudHistoryData();
-                        }
-                      }}
-                      className={`rounded-md px-3 py-1 text-[10px] font-black uppercase tracking-wider transition ${
-                        historyMode === "cloud"
-                          ? "bg-white text-forest shadow-premium"
-                          : "text-[#45544e] hover:text-forest"
-                      }`}
-                    >
-                      Cloud
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-[#45544e]">
-                    {historyMode === "local" ? (
-                      historyTotal ? `${visibleHistoryIndex + 1} / ${historyTotal}` : "0 / 0"
-                    ) : (
-                      cloudHistoryTotal ? `${visibleCloudHistoryIndex + 1} / ${cloudHistoryTotal}` : "0 / 0"
-                    )}
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => moveHistoryPage(-1)}
-                      disabled={
-                        (historyMode === "local" && (!historyTotal || visibleHistoryIndex === 0)) ||
-                        (historyMode === "cloud" && (!cloudHistoryTotal || visibleCloudHistoryIndex === 0))
-                      }
-                      className="grid size-8 place-items-center rounded-lg border border-forest/10 bg-white text-forest transition hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-30 active:scale-90"
-                      aria-label="Riwayat sebelumnya"
-                    >
-                      <ChevronLeft size={16} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveHistoryPage(1)}
-                      disabled={
-                        (historyMode === "local" && (!historyTotal || visibleHistoryIndex >= historyTotal - 1)) ||
-                        (historyMode === "cloud" && (!cloudHistoryTotal || visibleCloudHistoryIndex >= cloudHistoryTotal - 1))
-                      }
-                      className="grid size-8 place-items-center rounded-lg border border-forest/10 bg-white text-forest transition hover:bg-forest/5 disabled:cursor-not-allowed disabled:opacity-30 active:scale-90"
-                      aria-label="Riwayat berikutnya"
-                    >
-                      <ChevronRight size={16} aria-hidden="true" />
-                    </button>
-                    {historyMode === "local" ? (
-                      <button
-                        type="button"
-                        onClick={() => setPendingHistoryDelete({ kind: "all" })}
-                        disabled={!historyTotal}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-100 bg-white px-2.5 text-[10px] font-black uppercase text-red-600 transition hover:bg-red-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        <Trash2 size={13} aria-hidden="true" />
-                        Hapus
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={loadCloudHistoryData}
-                        disabled={isFetchingHistory}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-forest/10 bg-white px-2.5 text-[10px] font-black uppercase text-forest transition hover:bg-forest/5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        {isFetchingHistory ? (
-                          <Loader2 size={13} className="animate-spin" />
-                        ) : (
-                          <Upload size={13} />
-                        )}
-                        Refresh
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="p-2">
-                {historyMode === "local" ? (
-                  visibleHistoryItem ? (
-                    <div className="flex items-start gap-2 rounded-md bg-[#f7faf8] p-2">
-                      <button
-                        type="button"
-                        onClick={() => loadHistoryItem(visibleHistoryItem)}
-                        className="grid min-w-0 flex-1 gap-1 rounded-md p-2 text-left transition hover:bg-[#eef4f1]"
-                      >
-                        <span className="text-sm font-semibold text-[#27332e]">
-                          {outputModeLabels[visibleHistoryItem.outputMode]}
-                        </span>
-                        <span className="text-xs leading-5 text-[#45544e]">
-                          {visibleHistoryItem.createdAt}
-                        </span>
-                        <span className="line-clamp-2 text-xs leading-5 text-[#45544e]">
-                          {visibleHistoryItem.questionPreview}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setPendingHistoryDelete({
-                            kind: "single",
-                            id: visibleHistoryItem.id,
-                          })
-                        }
-                        className="grid size-10 shrink-0 place-items-center rounded-md border border-[#c8d0cb] bg-white text-[#27332e] transition hover:bg-[#fff1ef]"
-                        aria-label="Hapus riwayat ini"
-                        title="Hapus riwayat ini"
-                      >
-                        <Trash2 size={16} aria-hidden="true" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center text-sm text-[#45544e]">
-                      <History size={24} className="mx-auto mb-2 opacity-20" />
-                      <p>Belum ada riwayat lokal.</p>
-                    </div>
-                  )
-                ) : (
-                  visibleCloudHistoryItem ? (
-                    <div className="flex items-start gap-2 rounded-md bg-[#f7faf8] p-2">
-                      <button
-                        type="button"
-                        onClick={() => loadCloudHistoryItem(visibleCloudHistoryItem)}
-                        className="grid min-w-0 flex-1 gap-1 rounded-md p-2 text-left transition hover:bg-[#eef4f1]"
-                      >
-                        <span className="text-sm font-semibold text-[#27332e]">
-                          {visibleCloudHistoryItem.metadata?.outputMode
-                            ? outputModeLabels[visibleCloudHistoryItem.metadata.outputMode]
-                            : "Pembahasan"}
-                        </span>
-                        <span className="text-xs leading-5 text-[#45544e]">
-                          {new Date(visibleCloudHistoryItem.created_at).toLocaleString("id-ID")}
-                        </span>
-                        <span className="line-clamp-2 text-xs leading-5 text-[#45544e]">
-                          {buildQuestionPreview(visibleCloudHistoryItem.question_text)}
-                        </span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid place-items-center py-8 text-center text-xs text-[#45544e]">
-                      {isFetchingHistory ? (
-                        <>
-                          <Loader2 size={24} className="mb-2 animate-spin opacity-40" />
-                          <p>Mengambil data dari cloud...</p>
-                        </>
-                      ) : (
-                        <>
-                          <History size={24} className="mx-auto mb-2 opacity-20" />
-                          <p>Belum ada riwayat cloud.</p>
-                          <button
-                            onClick={loadCloudHistoryData}
-                            className="mt-2 text-[#3b82f6] hover:underline"
-                          >
-                            Muat ulang
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )
-                )}
-              </div>
-            </section>
+          <aside className="grid min-h-[720px] grid-rows-[minmax(0,1fr)_auto] gap-6 lg:min-h-0">
+            <OutputPanel 
+              answer={answer} modelUsed={modelUsed} usageText={usageText} outputMode={outputMode}
+              copied={copied} onCopy={async () => { await navigator.clipboard.writeText(answer); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
+              onDownload={downloadAnswer}
+            />
+            <HistoryPanel 
+              historyMode={historyMode} onHistoryModeChange={setHistoryMode}
+              historyTotal={historyTotal} visibleHistoryIndex={visibleHistoryIndex} visibleHistoryItem={visibleHistoryItem}
+              cloudHistoryTotal={cloudHistoryTotal} visibleCloudHistoryIndex={visibleCloudHistoryIndex} visibleCloudHistoryItem={visibleCloudHistoryItem}
+              isFetchingHistory={isFetchingHistory} onMoveHistoryPage={moveHistoryPage}
+              onLoadHistoryItem={(item) => { setAnswer(item.answer); setOutputMode(item.outputMode as any); setModelUsed("Riwayat lokal"); setUsageText(item.createdAt); }}
+              onLoadCloudHistoryItem={(item) => { setAnswer(item.answer_text); setOutputMode(item.metadata?.outputMode as any); setModelUsed(item.metadata?.model || "Riwayat cloud"); setUsageText(new Date(item.created_at).toLocaleString("id-ID")); }}
+              onLoadCloudHistoryData={loadCloudHistoryData}
+              onDeleteHistory={setPendingHistoryDelete}
+              outputModeLabels={outputModeLabels} buildQuestionPreview={buildQuestionPreview}
+            />
           </aside>
         </div>
-
-        {pendingHistoryDelete ? (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-[#17201c]/30 p-4">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="history-delete-title"
-              className="w-full max-w-sm rounded-lg border border-[#cfd8d2] bg-white p-4 shadow-xl"
-            >
-              <div className="flex items-start gap-3">
-                <div className="grid size-10 shrink-0 place-items-center rounded-md bg-[#fff1ef] text-[#8a2f22]">
-                  <Trash2 size={18} aria-hidden="true" />
-                </div>
-                <div className="grid gap-1">
-                  <h3
-                    id="history-delete-title"
-                    className="text-base font-semibold text-[#17201c]"
-                  >
-                    {pendingHistoryDelete.kind === "all"
-                      ? "Hapus semua riwayat?"
-                      : "Hapus riwayat ini?"}
-                  </h3>
-                  <p className="text-sm leading-6 text-[#45544e]">
-                    {pendingHistoryDelete.kind === "all"
-                      ? "Semua riwayat lokal di browser ini akan dihapus."
-                      : "Item riwayat lokal ini akan dihapus dari browser ini."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPendingHistoryDelete(null)}
-                  className="inline-flex h-10 items-center rounded-md border border-[#c8d0cb] bg-white px-4 text-sm font-medium text-[#27332e] transition hover:bg-[#f5f8f6]"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmHistoryDelete}
-                  className="inline-flex h-10 items-center gap-2 rounded-md bg-[#8a2f22] px-4 text-sm font-semibold text-white transition hover:bg-[#70251b]"
-                >
-                  <Trash2 size={16} aria-hidden="true" />
-                  Hapus
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
+
+      {pendingHistoryDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-forest/20 backdrop-blur-sm" onClick={() => setPendingHistoryDelete(null)} />
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-premium-lg">
+            <div className="mb-6">
+              <h3 className="text-base font-bold text-forest">{pendingHistoryDelete.kind === "all" ? "Hapus semua riwayat?" : "Hapus riwayat ini?"}</h3>
+              <p className="text-sm font-medium text-[#45544e] mt-1">Tindakan ini tidak bisa dibatalkan.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setPendingHistoryDelete(null)} className="flex-1 rounded-xl border border-forest/10 h-11 text-sm font-bold text-forest hover:bg-forest/5 transition">Batal</button>
+              <button onClick={() => { 
+                if (pendingHistoryDelete.kind === "all") { setHistory([]); setHistoryPage(0); }
+                else { const next = history.filter(h => h.id !== pendingHistoryDelete.id); setHistory(next); setHistoryPage(c => Math.min(c, Math.max(next.length - 1, 0))); }
+                setPendingHistoryDelete(null);
+              }} className="flex-1 rounded-xl bg-red-500 h-11 text-sm font-bold text-white hover:bg-red-600 transition">Ya, Hapus</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </main>
   );
 }
