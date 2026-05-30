@@ -31,6 +31,7 @@ import {
   type OutputMode,
   type TbiQuestionType,
 } from "@/lib/tbi-prompt";
+import { saveToTutorHistory } from "@/lib/supabase";
 
 type ImageMode = "ocr" | "vision";
 type ReasoningEffort = "high" | "max";
@@ -708,6 +709,18 @@ export function TbiTutorApp() {
         ...current,
       ]);
       setHistoryPage(0);
+
+      // Persist to Supabase for efficiency (text only)
+      void saveToTutorHistory({
+        domain: "tbi",
+        questionText: textForSolve,
+        answerText: nextAnswer,
+        metadata: {
+          outputMode,
+          model: data.model || model,
+          usage: data.usage
+        }
+      });
     } catch (solveError) {
       setError(
         solveError instanceof Error
@@ -797,6 +810,19 @@ export function TbiTutorApp() {
               ...current,
             ]);
             setHistoryPage(0);
+
+            // Persist to Supabase for efficiency (text only)
+            void saveToTutorHistory({
+              domain: "tbi",
+              questionText: item.ocrText.trim(),
+              answerText: nextAnswer,
+              metadata: {
+                outputMode,
+                model: data.model || model,
+                usage: data.usage,
+                fileName: item.name
+              }
+            });
           }
 
           const doneCount = workingItems.filter(
