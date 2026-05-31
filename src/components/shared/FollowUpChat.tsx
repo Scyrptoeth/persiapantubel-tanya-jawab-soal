@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { User, BrainCircuit } from "lucide-react";
+import { User, BrainCircuit, Copy, Check } from "lucide-react";
+import { useState } from "react";
 import type { Message } from "@/store/tutorStore";
 
 interface FollowUpChatProps {
@@ -11,6 +12,17 @@ interface FollowUpChatProps {
 export function FollowUpChat({ messages }: FollowUpChatProps) {
   // Filter out the main answer as it is shown in the OutputPanel
   const followUpMessages = messages.filter((m) => !m.isMainAnswer);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function handleCopy(text: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy text:", err);
+    }
+  }
 
   if (followUpMessages.length === 0) return null;
 
@@ -51,12 +63,25 @@ export function FollowUpChat({ messages }: FollowUpChatProps) {
               </div>
 
               <div
-                className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-premium ${
+                className={`relative group max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-premium ${
                   message.role === "user"
                     ? "bg-white border border-gold/20 text-forest rounded-tr-none"
                     : "bg-forest/[0.02] border border-forest/5 text-[#1f2b25] rounded-tl-none"
                 }`}
               >
+                {message.role === "assistant" && (
+                  <button
+                    onClick={() => handleCopy(message.content, message.id)}
+                    className="absolute -top-3 -right-3 grid size-8 place-items-center rounded-xl bg-white border border-forest/10 text-forest shadow-premium opacity-0 group-hover:opacity-100 transition-all hover:bg-forest/5 active:scale-90 z-10"
+                    title="Salin jawaban"
+                  >
+                    {copiedId === message.id ? (
+                      <Check size={14} className="text-green-600" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                )}
                 <p className="whitespace-pre-wrap">{message.content}</p>
               </div>
               

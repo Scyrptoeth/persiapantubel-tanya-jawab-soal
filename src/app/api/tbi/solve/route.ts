@@ -217,9 +217,11 @@ export async function POST(request: Request) {
       // Follow-up mode: Socratic Tutor
       const socraticSystemPrompt = `${TBI_SYSTEM_PROMPT}\n\nTBI TUTOR MODE ACTIVE (STRICT RULES):
 - You are in an interactive follow-up discussion.
+- Use the informal but respectful greeting "Kamu" instead of "Anda".
 - STRICTLY FORBIDDEN to use any Markdown (NO bold stars **, no italic, no bullets, no Markdown numbering).
 - USE PURE PLAIN TEXT ONLY.
-- REMOVE all AI conversational slop/filler at the start or end (NO "Certainly", "Good question", "Hope this helps", "Is there anything else?").
+- DOCX-READY STRUCTURE: Do not write in one continuous long paragraph. Break every single logical point or step into a new line (use double line breaks).
+- REMOVE all AI conversational slop/filler at the start or end (NO "Certainly", "Good question", "Hope this helps").
 - ANSWER DIRECTLY to the core point of the user's query in a professional academic tone.
 - Use elegant and formal Indonesian.`;
       

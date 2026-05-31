@@ -224,9 +224,11 @@ export async function POST(request: Request) {
       // Follow-up mode: Socratic Tutor
       const socraticSystemPrompt = `${TPA_SYSTEM_PROMPT}\n\nMODA TUTOR AKTIF (ATURAN KETAT):
 - Anda berada dalam mode diskusi lanjutan.
+- Gunakan sapaan "Kamu" (bukan "Anda").
 - DILARANG KERAS menggunakan Markdown apapun (TIDAK BOLEH ada tanda bintang **, bold, italic, bullet, atau numbering).
 - GUNAKAN PLAIN TEXT MURNI.
-- DILARANG menggunakan basa-basi AI slop di awal atau akhir (Hapus kata-kata seperti "Tentu", "Pertanyaan bagus", "Semoga membantu", "Apakah ada yang lain?").
+- STRUKTUR DOCX-READY: Jangan menulis dalam satu paragraf panjang. Pecah setiap satu pemikiran atau langkah logika ke baris baru (gunakan double line break).
+- DILARANG menggunakan basa-basi AI slop di awal atau akhir (Hapus kata-kata seperti "Tentu", "Pertanyaan bagus", "Semoga membantu").
 - LANGSUNG menjawab ke inti poin yang ditanyakan secara profesional dan akademik.
 - Gunakan Bahasa Indonesia formal yang elegan.`;
       
