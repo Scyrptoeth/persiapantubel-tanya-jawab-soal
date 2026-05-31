@@ -82,7 +82,35 @@ export function FollowUpChat({ messages }: FollowUpChatProps) {
                     )}
                   </button>
                 )}
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                {message.role === "assistant" ? (
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                      visible: {
+                        transition: {
+                          staggerChildren: 0.1,
+                        },
+                      },
+                    }}
+                  >
+                    {message.content.split("\n").map((line, i) => (
+                      <motion.p
+                        key={i}
+                        variants={{
+                          hidden: { opacity: 0, y: 5 },
+                          visible: { opacity: 1, y: 0 },
+                        }}
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
+                        className={line.trim() === "" ? "h-3" : "mb-3 last:mb-0"}
+                      >
+                        {line}
+                      </motion.p>
+                    ))}
+                  </motion.div>
+                ) : (
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                )}
               </div>
               
               <span className="text-[9px] font-bold text-forest/20 uppercase">

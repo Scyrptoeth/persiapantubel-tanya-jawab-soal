@@ -64,20 +64,34 @@ export function OutputPanel({
           {answer ? (
             <motion.div
               key={answer}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: {
+                  transition: {
+                    staggerChildren: 0.1,
+                  },
+                },
+              }}
+              className={`whitespace-pre-wrap break-words text-[15px] leading-relaxed text-[#1f2b25] ${
+                outputMode === "docx"
+                  ? "font-premium-serif text-lg leading-loose"
+                  : "font-sans"
+              }`}
             >
-              <pre
-                className={`whitespace-pre-wrap break-words text-[15px] leading-relaxed text-[#1f2b25] ${
-                  outputMode === "docx"
-                    ? "font-premium-serif text-lg leading-loose"
-                    : "font-sans"
-                }`}
-              >
-                {answer}
-              </pre>
+              {answer.split("\n").map((line, i) => (
+                <motion.p
+                  key={i}
+                  variants={{
+                    hidden: { opacity: 0, y: 5 },
+                    visible: { opacity: 1, y: 0 },
+                  }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
+                  className={line.trim() === "" ? "h-4" : "mb-4 last:mb-0"}
+                >
+                  {line}
+                </motion.p>
+              ))}
             </motion.div>
           ) : (
             <motion.div
