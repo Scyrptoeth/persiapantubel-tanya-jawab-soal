@@ -127,10 +127,6 @@ export default function Home() {
             <stop offset="0%" stopColor="#991b1b" />
             <stop offset="100%" stopColor="#ef4444" />
           </linearGradient>
-          <filter id="glowTPA" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
         </defs>
         <rect x="5" y="5" width="50" height="50" rx="12" fill="url(#gradTPA)" fillOpacity="0.1" stroke="url(#gradTPA)" strokeWidth="2" />
         <text 
@@ -142,7 +138,6 @@ export default function Home() {
           fontSize="18" 
           fontWeight="900" 
           fontFamily="sans-serif"
-          filter="url(#glowTPA)"
           style={{ letterSpacing: '1px' }}
         >
           TPA
@@ -159,10 +154,6 @@ export default function Home() {
             <stop offset="0%" stopColor="#b45309" />
             <stop offset="100%" stopColor="#f59e0b" />
           </linearGradient>
-          <filter id="glowTBI" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
         </defs>
         <rect x="5" y="5" width="50" height="50" rx="12" fill="url(#gradTBI)" fillOpacity="0.1" stroke="url(#gradTBI)" strokeWidth="2" />
         <text 
@@ -174,7 +165,6 @@ export default function Home() {
           fontSize="18" 
           fontWeight="900" 
           fontFamily="sans-serif"
-          filter="url(#glowTBI)"
           style={{ letterSpacing: '1px' }}
         >
           TBI

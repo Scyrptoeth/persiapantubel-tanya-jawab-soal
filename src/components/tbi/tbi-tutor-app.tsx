@@ -20,6 +20,7 @@ import {
 
 // Decoupled Components
 import { Header } from "@/components/shared/Header";
+import { LogoTBI } from "@/components/shared/Logos";
 import { SettingsPanel, type ApiPreset, type AnswerQuality, type ReasoningEffort } from "@/components/shared/SettingsPanel";
 import { Dropzone } from "@/components/shared/Dropzone";
 import { HistoryPanel } from "@/components/shared/HistoryPanel";
@@ -554,6 +555,7 @@ export function TbiTutorApp() {
           switchTarget="/tpa"
           switchLabel="Ke TPA"
           onSettingsToggle={() => setShowSettings(!showSettings)}
+          logo={<LogoTBI className="scale-75" />}
         />
 
         {showSettings && (

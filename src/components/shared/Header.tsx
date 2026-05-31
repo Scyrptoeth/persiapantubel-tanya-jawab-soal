@@ -13,6 +13,7 @@ interface HeaderProps {
   switchTarget: "/tpa" | "/tbi";
   switchLabel: string;
   onSettingsToggle: () => void;
+  logo?: React.ReactNode;
 }
 
 export function Header({
@@ -21,6 +22,7 @@ export function Header({
   switchTarget,
   switchLabel,
   onSettingsToggle,
+  logo,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 flex shrink-0 flex-col gap-3 rounded-xl border border-forest/5 bg-white/60 pb-3 p-3 backdrop-blur-xl md:flex-row md:items-center md:justify-between shadow-premium mb-4">
@@ -39,14 +41,16 @@ export function Header({
           />
         </Link>
         <div className="flex items-center gap-3">
-          <div className="hidden size-10 items-center justify-center rounded-xl bg-forest/5 p-2 sm:flex shadow-inner">
-            <Image 
-              src="/favicon.png" 
-              alt="Logo" 
-              width={24} 
-              height={24} 
-              className="object-contain opacity-80"
-            />
+          <div className="hidden size-10 items-center justify-center rounded-xl bg-forest/5 p-1 sm:flex shadow-inner">
+            {logo ? logo : (
+              <Image 
+                src="/favicon.png" 
+                alt="Logo" 
+                width={24} 
+                height={24} 
+                className="object-contain opacity-80"
+              />
+            )}
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-forest">
