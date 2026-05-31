@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { 
   ArrowRightLeft, 
-  BrainCircuit, 
-  FileText, 
-  Home, 
   Settings2 
 } from "lucide-react";
 
@@ -29,14 +27,26 @@ export function Header({
       <div className="flex items-center gap-4">
         <Link
           href="/"
-          className="grid size-11 place-items-center rounded-xl bg-forest text-white shadow-premium transition hover:bg-forest/90 active:scale-95"
+          className="relative size-11 overflow-hidden rounded-xl bg-white border border-forest/10 shadow-premium transition hover:shadow-premium-lg active:scale-95 flex items-center justify-center p-1.5"
           title="Kembali ke Beranda"
         >
-          <Home size={24} aria-hidden="true" />
+          <Image 
+            src="/favicon.png" 
+            alt="Persiapantubel" 
+            width={32} 
+            height={32} 
+            className="object-contain"
+          />
         </Link>
         <div className="flex items-center gap-3">
-          <div className="hidden size-10 place-items-center rounded-xl bg-forest/5 text-forest sm:grid shadow-inner">
-            <BrainCircuit size={20} aria-hidden="true" />
+          <div className="hidden size-10 items-center justify-center rounded-xl bg-forest/5 p-2 sm:flex shadow-inner">
+            <Image 
+              src="/favicon.png" 
+              alt="Logo" 
+              width={24} 
+              height={24} 
+              className="object-contain opacity-80"
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-forest">

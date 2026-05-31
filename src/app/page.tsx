@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BrainCircuit, GraduationCap } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Home() {
@@ -184,6 +185,19 @@ export default function Home() {
 
   return (
     <main className="min-h-dvh flex flex-col items-center justify-center p-6 md:p-24 relative overflow-hidden bg-paper text-forest">
+      {/* Small Nav Logo */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link href="/" className="block active:scale-95 transition">
+          <Image 
+            src="/logo.png" 
+            alt="Persiapantubel" 
+            width={120} 
+            height={40} 
+            className="h-8 w-auto object-contain"
+          />
+        </Link>
+      </div>
+
       {/* Background decoration with subtle premium tint */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
          <motion.div 
@@ -207,6 +221,19 @@ export default function Home() {
         className="z-10 max-w-4xl w-full text-center space-y-12"
       >
         <div className="space-y-6">
+          <motion.div 
+            variants={blurFadeVariants}
+            className="flex justify-center mb-4"
+          >
+            <Image 
+              src="/logo.png" 
+              alt="Persiapantubel Logo" 
+              width={240} 
+              height={80} 
+              className="h-16 md:h-20 w-auto object-contain drop-shadow-sm"
+              priority
+            />
+          </motion.div>
           <div className="overflow-hidden">
             <motion.h1 
               variants={revealVariants}

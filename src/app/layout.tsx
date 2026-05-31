@@ -25,6 +25,10 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Tanya Jawab Soal Persiapantubel",
   description: "Aplikasi Tutor Tanya Jawab Soal TPA & TBI Persiapantubel",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
