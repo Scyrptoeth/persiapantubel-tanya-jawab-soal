@@ -7,9 +7,10 @@ import type { Message } from "@/store/tutorStore";
 
 interface FollowUpChatProps {
   messages: Message[];
+  isSolving?: boolean;
 }
 
-export function FollowUpChat({ messages }: FollowUpChatProps) {
+export function FollowUpChat({ messages, isSolving }: FollowUpChatProps) {
   // Filter out the main answer as it is shown in the OutputPanel
   const followUpMessages = messages.filter((m) => !m.isMainAnswer);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function FollowUpChat({ messages }: FollowUpChatProps) {
     }
   }
 
-  if (followUpMessages.length === 0) return null;
+  if (followUpMessages.length === 0 && !isSolving) return null;
 
   return (
     <div className="flex flex-col gap-6 p-4 pt-0">
@@ -75,11 +76,29 @@ export function FollowUpChat({ messages }: FollowUpChatProps) {
                     className="absolute -top-3 -right-3 grid size-8 place-items-center rounded-xl bg-white border border-forest/10 text-forest shadow-premium opacity-0 group-hover:opacity-100 transition-all hover:bg-forest/5 active:scale-90 z-10"
                     title="Salin jawaban"
                   >
-                    {copiedId === message.id ? (
-                      <Check size={14} className="text-green-600" />
-                    ) : (
-                      <Copy size={14} />
-                    )}
+                    <AnimatePresence mode="wait">
+                      {copiedId === message.id ? (
+                        <motion.div
+                          key="check"
+                          initial={{ scale: 0, rotate: -45 }}
+                          animate={{ scale: [0, 1.2, 1], rotate: 0 }}
+                          exit={{ scale: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <Check size={14} className="text-green-600" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="copy"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          exit={{ scale: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Copy size={14} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </button>
                 )}
                 {message.role === "assistant" ? (
@@ -121,6 +140,35 @@ export function FollowUpChat({ messages }: FollowUpChatProps) {
               </span>
             </motion.div>
           ))}
+
+          {isSolving && followUpMessages.length > 0 && followUpMessages[followUpMessages.length - 1].role === "user" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-3 items-start"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div className="grid size-6 place-items-center rounded-lg bg-forest/5 text-forest">
+                  <BrainCircuit size={14} />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-forest/40">
+                  Tutor
+                </span>
+              </div>
+              <div className="max-w-[85%] rounded-2xl p-4 bg-forest/[0.02] border border-forest/5 rounded-tl-none">
+                <div className="flex gap-1.5">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                      className="size-1.5 rounded-full bg-forest/20"
+                    />
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
     </div>

@@ -681,12 +681,12 @@ export function TpaTutorApp() {
             <div className="flex min-h-0 flex-col rounded-2xl border border-forest/10 bg-white shadow-premium-lg lg:border-none lg:shadow-none 2xl:shadow-premium-lg 2xl:border-forest/10 overflow-hidden">
               <div className="flex-1 overflow-auto">
                 <OutputPanel 
-                  answer={answer} modelUsed={modelUsed} usageText={usageText} outputMode={outputMode}
+                  answer={answer} isSolving={isSolving} modelUsed={modelUsed} usageText={usageText} outputMode={outputMode}
                   copied={copied} onCopy={async () => { await navigator.clipboard.writeText(answer); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
                   onDownload={downloadAnswer}
                 />
                 
-                <FollowUpChat messages={messages} />
+                <FollowUpChat messages={messages} isSolving={isSolving} />
               </div>
 
               {answer && (

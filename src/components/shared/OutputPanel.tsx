@@ -2,9 +2,11 @@
 
 import { Check, Clipboard, Copy, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SkeletonLoader } from "./SkeletonLoader";
 
 interface OutputPanelProps {
   answer: string;
+  isSolving: boolean;
   modelUsed: string;
   usageText: string;
   outputMode: string;
@@ -15,6 +17,7 @@ interface OutputPanelProps {
 
 export function OutputPanel({
   answer,
+  isSolving,
   modelUsed,
   usageText,
   outputMode,
@@ -28,27 +31,45 @@ export function OutputPanel({
         <div>
           <h2 className="text-base font-bold text-forest">Output</h2>
           <p className="text-xs font-medium text-[#45544e]">
-            {modelUsed ? `${modelUsed}${usageText ? ` · ${usageText}` : ""}` : "Belum ada hasil"}
+            {isSolving ? "Menganalisa..." : (modelUsed ? `${modelUsed}${usageText ? ` · ${usageText}` : ""}` : "Belum ada hasil")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            disabled={!answer}
+            disabled={!answer || isSolving}
             onClick={onCopy}
             className="grid size-10 place-items-center rounded-xl border border-forest/10 bg-white text-forest transition hover:bg-forest/5 disabled:opacity-30 active:scale-95 shadow-sm"
             aria-label="Copy output"
             title="Copy output"
           >
-            {copied ? (
-              <Check size={18} className="text-green-600" />
-            ) : (
-              <Copy size={18} aria-hidden="true" />
-            )}
+            <AnimatePresence mode="wait">
+              {copied ? (
+                <motion.div
+                  key="check"
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: [0, 1.2, 1], rotate: 0 }}
+                  exit={{ scale: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Check size={18} className="text-green-600" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="copy"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Copy size={18} aria-hidden="true" />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </button>
           <button
             type="button"
-            disabled={!answer}
+            disabled={!answer || isSolving}
             onClick={onDownload}
             className="grid size-10 place-items-center rounded-xl border border-forest/10 bg-white text-forest transition hover:bg-forest/5 disabled:opacity-30 active:scale-95 shadow-sm"
             aria-label="Download output"
@@ -61,7 +82,17 @@ export function OutputPanel({
 
       <div className="min-h-0 flex-1 overflow-auto p-4 lg:p-6">
         <AnimatePresence mode="wait">
-          {answer ? (
+          {isSolving ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full"
+            >
+              <SkeletonLoader />
+            </motion.div>
+          ) : answer ? (
             <motion.div
               key={answer}
               initial="hidden"
@@ -95,8 +126,10 @@ export function OutputPanel({
             </motion.div>
           ) : (
             <motion.div
+              key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="grid h-full min-h-0 place-items-center rounded-2xl border border-dashed border-forest/10 bg-forest/[0.01] p-8 text-center text-sm text-[#45544e]"
             >
               <div className="grid justify-items-center gap-4">
