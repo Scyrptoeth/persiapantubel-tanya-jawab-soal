@@ -568,6 +568,8 @@ export function TbiTutorApp() {
             maxTokens={maxTokens} onMaxTokensChange={setMaxTokens}
             useDeepSeekThinking={useDeepSeekThinking} onUseDeepSeekThinkingChange={setUseDeepSeekThinking}
             temperature={temperature} onTemperatureChange={setTemperature}
+            historyKey="tbi-tutor-history"
+            onImportSuccess={setHistory}
           />
         )}
 

@@ -568,6 +568,8 @@ export function TpaTutorApp() {
             maxTokens={maxTokens} onMaxTokensChange={setMaxTokens}
             useDeepSeekThinking={useDeepSeekThinking} onUseDeepSeekThinkingChange={setUseDeepSeekThinking}
             temperature={temperature} onTemperatureChange={setTemperature}
+            historyKey="tpa-tutor-history"
+            onImportSuccess={setHistory}
           />
         )}
 

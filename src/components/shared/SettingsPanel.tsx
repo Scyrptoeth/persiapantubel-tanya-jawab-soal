@@ -2,6 +2,8 @@
 
 import { KeyRound, Settings2 } from "lucide-react";
 import { useState } from "react";
+import { StorageManager } from "./StorageManager";
+import type { HistoryItem } from "./types";
 
 export type ApiPreset = "deepseek" | "custom";
 export type AnswerQuality = "standard" | "thorough";
@@ -29,6 +31,9 @@ interface SettingsPanelProps {
   onUseDeepSeekThinkingChange: (useThinking: boolean) => void;
   temperature: number;
   onTemperatureChange: (temp: number) => void;
+  // Storage
+  historyKey: string;
+  onImportSuccess: (data: HistoryItem[]) => void;
 }
 
 export function SettingsPanel({
@@ -52,6 +57,8 @@ export function SettingsPanel({
   onUseDeepSeekThinkingChange,
   temperature,
   onTemperatureChange,
+  historyKey,
+  onImportSuccess,
 }: SettingsPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -239,6 +246,11 @@ export function SettingsPanel({
           </div>
         )}
       </div>
+
+      <StorageManager 
+        historyKey={historyKey} 
+        onImportSuccess={onImportSuccess} 
+      />
     </section>
   );
 }
