@@ -32,6 +32,28 @@ export const metadata: Metadata = {
     icon: "/favicon.png",
     apple: "/favicon.png",
   },
+  openGraph: {
+    title: "Tanya Jawab Soal Persiapantubel",
+    description: "Asisten AI Tutor TPA & TBI untuk persiapan masuk sekolah kedinasan.",
+    url: "https://persiapantubel-tanya-jawab-soal.vercel.app",
+    siteName: "Persiapantubel",
+    images: [
+      {
+        url: "/logo.png",
+        width: 800,
+        height: 600,
+        alt: "Logo Persiapantubel",
+      },
+    ],
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tanya Jawab Soal Persiapantubel",
+    description: "Asisten AI Tutor TPA & TBI untuk persiapan masuk sekolah kedinasan.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
