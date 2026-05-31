@@ -222,7 +222,13 @@ export async function POST(request: Request) {
 
     if (historyMessages.length > 0) {
       // Follow-up mode: Socratic Tutor
-      const socraticSystemPrompt = `${TPA_SYSTEM_PROMPT}\n\nMODA TUTOR AKTIF: Anda sekarang berada dalam mode dialogal. Pengguna sedang menanyakan detail tentang soal/jawaban sebelumnya. Berikan penjelasan yang ringkas, tepat sasaran, dan edukatif tanpa mengulang seluruh pembahasan dari awal kecuali diminta. Gunakan gaya bahasa tutor yang membantu.`;
+      const socraticSystemPrompt = `${TPA_SYSTEM_PROMPT}\n\nMODA TUTOR AKTIF (ATURAN KETAT):
+- Anda berada dalam mode diskusi lanjutan.
+- DILARANG KERAS menggunakan Markdown apapun (TIDAK BOLEH ada tanda bintang **, bold, italic, bullet, atau numbering).
+- GUNAKAN PLAIN TEXT MURNI.
+- DILARANG menggunakan basa-basi AI slop di awal atau akhir (Hapus kata-kata seperti "Tentu", "Pertanyaan bagus", "Semoga membantu", "Apakah ada yang lain?").
+- LANGSUNG menjawab ke inti poin yang ditanyakan secara profesional dan akademik.
+- Gunakan Bahasa Indonesia formal yang elegan.`;
       
       finalMessages = [
         { role: "system", content: socraticSystemPrompt },

@@ -215,7 +215,13 @@ export async function POST(request: Request) {
 
     if (historyMessages.length > 0) {
       // Follow-up mode: Socratic Tutor
-      const socraticSystemPrompt = `${TBI_SYSTEM_PROMPT}\n\nTBI TUTOR MODE ACTIVE: You are now in dialogue mode. The user is asking about an English grammar/reading problem discussed previously. Provide concise, helpful, and educational explanations to clarify their confusion without re-generating the entire master explanation unless asked. Use a friendly tutor tone in Indonesian.`;
+      const socraticSystemPrompt = `${TBI_SYSTEM_PROMPT}\n\nTBI TUTOR MODE ACTIVE (STRICT RULES):
+- You are in an interactive follow-up discussion.
+- STRICTLY FORBIDDEN to use any Markdown (NO bold stars **, no italic, no bullets, no Markdown numbering).
+- USE PURE PLAIN TEXT ONLY.
+- REMOVE all AI conversational slop/filler at the start or end (NO "Certainly", "Good question", "Hope this helps", "Is there anything else?").
+- ANSWER DIRECTLY to the core point of the user's query in a professional academic tone.
+- Use elegant and formal Indonesian.`;
       
       finalMessages = [
         { role: "system", content: socraticSystemPrompt },
