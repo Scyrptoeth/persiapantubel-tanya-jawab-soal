@@ -26,6 +26,7 @@ import { PageTransition } from "@/components/shared/PageTransition";
 import { AnimatePresence } from "framer-motion";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://persiapantubel-tanya-jawab-soal.vercel.app"),
   title: "Tanya Jawab Soal Persiapantubel",
   description: "Aplikasi Tutor Tanya Jawab Soal TPA & TBI Persiapantubel",
   icons: {
