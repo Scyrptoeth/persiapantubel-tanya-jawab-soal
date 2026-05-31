@@ -22,6 +22,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
 });
 
+import { PageTransition } from "@/components/shared/PageTransition";
+import { AnimatePresence } from "framer-motion";
+
 export const metadata: Metadata = {
   title: "Tanya Jawab Soal Persiapantubel",
   description: "Aplikasi Tutor Tanya Jawab Soal TPA & TBI Persiapantubel",
@@ -41,7 +44,9 @@ export default function RootLayout({
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} ${plusJakartaSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <PageTransition>{children}</PageTransition>
+      </body>
     </html>
   );
 }
