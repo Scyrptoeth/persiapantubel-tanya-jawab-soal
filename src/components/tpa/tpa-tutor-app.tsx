@@ -19,7 +19,7 @@ import {
   type OutputMode,
   type TpaDomain,
 } from "@/lib/tpa-prompt";
-import { fetchTutorHistory, saveToTutorHistory } from "@/lib/supabase";
+import { fetchTutorHistory, saveToTutorHistory, updateTutorHistory } from "@/lib/supabase";
 
 // Decoupled Components
 import { Header } from "@/components/shared/Header";
@@ -29,7 +29,10 @@ import { HistoryPanel } from "@/components/shared/HistoryPanel";
 import { OutputPanel } from "@/components/shared/OutputPanel";
 import { StickyActionPanel } from "@/components/shared/StickyActionPanel";
 import { BatchReviewPanel } from "@/components/shared/BatchReviewPanel";
+import { FollowUpChat } from "@/components/shared/FollowUpChat";
+import { FollowUpInput } from "@/components/shared/FollowUpInput";
 import type { HistoryMode, HistoryItem, CloudHistoryItem, HistoryDeleteTarget, BatchStatus, BatchItem } from "@/components/shared/types";
+import { useTutorStore, type Message } from "@/store/tutorStore";
 
 const IMAGE_MODE = "ocr";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -181,6 +184,16 @@ export function TpaTutorApp() {
     useState<ReasoningEffort>("high");
   const [temperature, setTemperature] = useState(0.2);
   const [maxTokens, setMaxTokens] = useState(1800);
+
+  // Zustand Tutor Store
+  const { 
+    messages, 
+    addMessage, 
+    setMessages, 
+    activeSessionId, 
+    setSessionId, 
+    clearSession 
+  } = useTutorStore();
 
   const canSolveSingle = useMemo(
     () =>
@@ -403,12 +416,13 @@ export function TpaTutorApp() {
     }
   }
 
-  async function requestSolve(text: string) {
+  async function requestSolve(text: string, thread?: Array<{ role: "user" | "assistant"; content: string }>) {
     const response = await fetch("/api/tpa/solve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         questionText: text,
+        messages: thread,
         imageMode: IMAGE_MODE,
         outputMode,
         domain,
@@ -434,6 +448,8 @@ export function TpaTutorApp() {
     setError("");
     setCopied(false);
     setIsSolving(true);
+    clearSession(); // Start fresh for a new question
+    
     try {
       const text = questionText.trim();
       if (!text) {
@@ -445,9 +461,26 @@ export function TpaTutorApp() {
       setAnswer(nextAnswer);
       setModelUsed(data.model || model);
       setUsageText(formatUsage(data.usage));
+      
+      const newMsg: Message = { 
+        id: crypto.randomUUID(), 
+        role: "assistant", 
+        content: nextAnswer, 
+        timestamp: new Date().toISOString(),
+        isMainAnswer: true 
+      };
+      setMessages([newMsg]);
+      
       setHistory((c) => [{ id: crypto.randomUUID(), createdAt: new Date().toLocaleString("id-ID"), questionPreview: buildQuestionPreview(text), outputMode, answer: nextAnswer }, ...c]);
       setHistoryPage(0);
-      void saveToTutorHistory({ domain: "tpa", questionText: text, answerText: nextAnswer, metadata: { outputMode, model: data.model || model, usage: data.usage } });
+      
+      const sid = await saveToTutorHistory({ 
+        domain: "tpa", 
+        questionText: text, 
+        answerText: nextAnswer, 
+        metadata: { outputMode, model: data.model || model, usage: data.usage } 
+      });
+      if (sid) setSessionId(sid.toString());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal.");
     } finally {
@@ -481,6 +514,55 @@ export function TpaTutorApp() {
     }
   }
 
+  async function handleFollowUp(text: string) {
+    if (!answer || isSolving) return;
+    
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+      timestamp: new Date().toISOString()
+    };
+    
+    addMessage(userMsg);
+    setIsSolving(true);
+    setError("");
+
+    try {
+      // Build full thread for API
+      const thread = messages.map(m => ({ role: m.role, content: m.content }));
+      thread.push({ role: "user", content: text });
+      
+      const data = await requestSolve("", thread);
+      const tutorAnswer = data.answer || "";
+      
+      const assistantMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: tutorAnswer,
+        timestamp: new Date().toISOString()
+      };
+      addMessage(assistantMsg);
+
+      // Sync to Cloud
+      if (activeSessionId) {
+        const followUps = messages.filter(m => !m.isMainAnswer).map(m => ({ role: m.role, content: m.content }));
+        followUps.push({ role: "user", content: text });
+        followUps.push({ role: "assistant", content: tutorAnswer });
+        
+        void updateTutorHistory(Number(activeSessionId), {
+          outputMode,
+          model: data.model || model,
+          followUps
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal memproses pertanyaan.");
+    } finally {
+      setIsSolving(false);
+    }
+  }
+
   function updateBatchItem(id: string, updates: Partial<BatchItem>) {
     setBatchItems((c) => c.map((i) => i.id === id ? { ...i, ...updates } : i));
   }
@@ -500,6 +582,7 @@ export function TpaTutorApp() {
     setError("");
     setModelUsed("");
     setUsageText("");
+    clearSession();
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -665,18 +748,76 @@ export function TpaTutorApp() {
           </section>
 
           <aside className="grid min-h-[720px] grid-rows-[minmax(0,1fr)_auto] gap-6 lg:min-h-0">
-            <OutputPanel 
-              answer={answer} modelUsed={modelUsed} usageText={usageText} outputMode={outputMode}
-              copied={copied} onCopy={async () => { await navigator.clipboard.writeText(answer); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
-              onDownload={downloadAnswer}
-            />
+            <div className="flex min-h-0 flex-col rounded-2xl border border-forest/10 bg-white shadow-premium-lg lg:border-none lg:shadow-none 2xl:shadow-premium-lg 2xl:border-forest/10 overflow-hidden">
+              <div className="flex-1 overflow-auto">
+                <OutputPanel 
+                  answer={answer} modelUsed={modelUsed} usageText={usageText} outputMode={outputMode}
+                  copied={copied} onCopy={async () => { await navigator.clipboard.writeText(answer); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
+                  onDownload={downloadAnswer}
+                />
+                
+                <FollowUpChat messages={messages} />
+              </div>
+
+              {answer && (
+                <FollowUpInput 
+                  onSend={handleFollowUp}
+                  isGenerating={isSolving}
+                  disabled={isBatchSolving}
+                />
+              )}
+            </div>
             <HistoryPanel 
               historyMode={historyMode} onHistoryModeChange={setHistoryMode}
               historyTotal={historyTotal} visibleHistoryIndex={visibleHistoryIndex} visibleHistoryItem={visibleHistoryItem}
               cloudHistoryTotal={cloudHistoryTotal} visibleCloudHistoryIndex={visibleCloudHistoryIndex} visibleCloudHistoryItem={visibleCloudHistoryItem}
               isFetchingHistory={isFetchingHistory} onMoveHistoryPage={moveHistoryPage}
-              onLoadHistoryItem={(item) => { setAnswer(item.answer); setOutputMode(item.outputMode as any); setModelUsed("Riwayat lokal"); setUsageText(item.createdAt); }}
-              onLoadCloudHistoryItem={(item) => { setAnswer(item.answer_text); setOutputMode(item.metadata?.outputMode as any); setModelUsed(item.metadata?.model || "Riwayat cloud"); setUsageText(new Date(item.created_at).toLocaleString("id-ID")); }}
+              onLoadHistoryItem={(item) => { 
+                clearSession();
+                setAnswer(item.answer); 
+                setOutputMode(item.outputMode as any); 
+                setModelUsed("Riwayat lokal"); 
+                setUsageText(item.createdAt); 
+                
+                const mainMsg: Message = {
+                  id: crypto.randomUUID(),
+                  role: "assistant",
+                  content: item.answer,
+                  timestamp: new Date().toISOString(),
+                  isMainAnswer: true
+                };
+                setMessages([mainMsg]);
+              }}
+              onLoadCloudHistoryItem={(item) => { 
+                clearSession();
+                setAnswer(item.answer_text); 
+                setOutputMode(item.metadata?.outputMode as any); 
+                setModelUsed(item.metadata?.model || "Riwayat cloud"); 
+                setUsageText(new Date(item.created_at).toLocaleString("id-ID")); 
+                setSessionId(item.id.toString());
+
+                const thread: Message[] = [
+                  {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: item.answer_text,
+                    timestamp: item.created_at,
+                    isMainAnswer: true
+                  }
+                ];
+
+                if (item.metadata?.followUps) {
+                  item.metadata.followUps.forEach((m: any) => {
+                    thread.push({
+                      id: crypto.randomUUID(),
+                      role: m.role,
+                      content: m.content,
+                      timestamp: new Date().toISOString()
+                    });
+                  });
+                }
+                setMessages(thread);
+              }}
               onLoadCloudHistoryData={loadCloudHistoryData}
               onDeleteHistory={setPendingHistoryDelete}
               outputModeLabels={outputModeLabels} buildQuestionPreview={buildQuestionPreview}

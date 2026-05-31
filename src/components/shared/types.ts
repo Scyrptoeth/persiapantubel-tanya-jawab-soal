@@ -17,6 +17,7 @@ export type CloudHistoryItem = {
   metadata?: {
     outputMode?: string;
     model?: string;
+    followUps?: Array<{ role: "user" | "assistant"; content: string }>;
   };
 };
 

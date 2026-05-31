@@ -12,6 +12,7 @@ type ReasoningEffort = "high" | "max";
 
 type SolveRequest = {
   questionText?: string;
+  messages?: Array<{ role: "user" | "assistant"; content: string }>;
   imageDataUrl?: string | null;
   imageMode?: "ocr" | "vision";
   outputMode?: OutputMode;
@@ -31,7 +32,7 @@ type SolveRequest = {
 
 type ChatMessage =
   | { role: "system"; content: string }
-  | { role: "user"; content: string };
+  | { role: "user" | "assistant"; content: string };
 
 const DEFAULT_BASE_URL =
   process.env.DEFAULT_LLM_BASE_URL ||
@@ -177,6 +178,7 @@ export async function POST(request: Request) {
       : providedApiKey;
 
     const questionText = body.questionText?.trim() || "";
+    const historyMessages = body.messages || [];
     const imageMode = body.imageMode || "ocr";
     const outputMode = body.outputMode || "standard";
     const questionType = body.questionType || "auto";
@@ -199,32 +201,45 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!questionText) {
+    if (!questionText && historyMessages.length === 0) {
       return NextResponse.json(
         {
           error:
-            "Isi soal belum ada. Jalankan OCR lokal dari gambar, cek hasilnya, lalu kirim teks ke DeepSeek.",
+            "Isi soal atau riwayat pesan belum ada. Jalankan OCR lokal atau kirim pertanyaan lanjutan.",
         },
         { status: 400 },
       );
     }
 
-    const userPrompt = buildTbiUserPrompt({
-      questionText,
-      questionType,
-      outputMode,
-      customInstruction: body.customInstruction,
-      imageMode,
-    });
+    let finalMessages: ChatMessage[] = [];
 
-    const messages: ChatMessage[] = [
-      { role: "system", content: TBI_SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
-    ];
+    if (historyMessages.length > 0) {
+      // Follow-up mode: Socratic Tutor
+      const socraticSystemPrompt = `${TBI_SYSTEM_PROMPT}\n\nTBI TUTOR MODE ACTIVE: You are now in dialogue mode. The user is asking about an English grammar/reading problem discussed previously. Provide concise, helpful, and educational explanations to clarify their confusion without re-generating the entire master explanation unless asked. Use a friendly tutor tone in Indonesian.`;
+      
+      finalMessages = [
+        { role: "system", content: socraticSystemPrompt },
+        ...historyMessages,
+      ];
+    } else {
+      // Turn 1: Expert Solver
+      const userPrompt = buildTbiUserPrompt({
+        questionText,
+        questionType,
+        outputMode,
+        customInstruction: body.customInstruction,
+        imageMode,
+      });
+
+      finalMessages = [
+        { role: "system", content: TBI_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ];
+    }
 
     const payload: Record<string, unknown> = {
       model,
-      messages,
+      messages: finalMessages,
       temperature: clampNumber(body.provider?.temperature, 0.2, 0, 1),
       max_tokens: clampNumber(body.provider?.maxTokens, 1800, 500, 12000),
       stream: false,

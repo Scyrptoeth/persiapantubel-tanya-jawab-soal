@@ -18,10 +18,10 @@ export async function saveToTutorHistory({
   answerText: string;
   metadata?: any;
 }) {
-  if (!supabase) return;
+  if (!supabase) return null;
   
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("tutor_history")
       .insert([
         {
@@ -30,10 +30,33 @@ export async function saveToTutorHistory({
           answer_text: answerText,
           metadata
         }
-      ]);
-    if (error) console.error("Supabase insert error:", error);
+      ])
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return null;
+    }
+    return data.id as number;
   } catch (err) {
     console.error("Failed to save to Supabase:", err);
+    return null;
+  }
+}
+
+export async function updateTutorHistory(id: number, metadata: any) {
+  if (!supabase) return;
+
+  try {
+    const { error } = await supabase
+      .from("tutor_history")
+      .update({ metadata })
+      .eq("id", id);
+
+    if (error) console.error("Supabase update error:", error);
+  } catch (err) {
+    console.error("Failed to update Supabase:", err);
   }
 }
 
