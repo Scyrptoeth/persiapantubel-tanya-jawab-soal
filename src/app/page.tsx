@@ -118,6 +118,70 @@ export default function Home() {
     }
   };
 
+  const LogoTPA = () => (
+    <div className="relative flex items-center justify-center">
+      <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gradTPA" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#991b1b" />
+            <stop offset="100%" stopColor="#ef4444" />
+          </linearGradient>
+          <filter id="glowTPA" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        <rect x="5" y="5" width="50" height="50" rx="12" fill="url(#gradTPA)" fillOpacity="0.1" stroke="url(#gradTPA)" strokeWidth="2" />
+        <text 
+          x="50%" 
+          y="50%" 
+          dominantBaseline="central" 
+          textAnchor="middle" 
+          fill="url(#gradTPA)" 
+          fontSize="18" 
+          fontWeight="900" 
+          fontFamily="sans-serif"
+          filter="url(#glowTPA)"
+          style={{ letterSpacing: '1px' }}
+        >
+          TPA
+        </text>
+      </svg>
+    </div>
+  );
+
+  const LogoTBI = () => (
+    <div className="relative flex items-center justify-center">
+      <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gradTBI" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#b45309" />
+            <stop offset="100%" stopColor="#f59e0b" />
+          </linearGradient>
+          <filter id="glowTBI" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        <rect x="5" y="5" width="50" height="50" rx="12" fill="url(#gradTBI)" fillOpacity="0.1" stroke="url(#gradTBI)" strokeWidth="2" />
+        <text 
+          x="50%" 
+          y="50%" 
+          dominantBaseline="central" 
+          textAnchor="middle" 
+          fill="url(#gradTBI)" 
+          fontSize="18" 
+          fontWeight="900" 
+          fontFamily="sans-serif"
+          filter="url(#glowTBI)"
+          style={{ letterSpacing: '1px' }}
+        >
+          TBI
+        </text>
+      </svg>
+    </div>
+  );
+
   return (
     <main className="min-h-dvh flex flex-col items-center justify-center p-6 md:p-24 relative overflow-hidden bg-paper text-forest">
       {/* Background decoration with subtle premium tint */}
@@ -181,7 +245,7 @@ export default function Home() {
                   className="w-20 h-20 mb-8 rounded-2xl bg-forest/5 flex items-center justify-center text-forest shadow-inner"
                 >
                   <motion.div variants={iconVariants}>
-                    <BrainCircuit className="w-10 h-10" />
+                    <LogoTPA />
                   </motion.div>
                 </motion.div>
                 <h2 className="text-2xl font-black text-forest mb-4 uppercase tracking-wide">Tanya Jawab TPA</h2>
@@ -215,7 +279,7 @@ export default function Home() {
                   className="w-20 h-20 mb-8 rounded-2xl bg-forest/5 flex items-center justify-center text-forest shadow-inner"
                 >
                   <motion.div variants={iconVariants}>
-                    <GraduationCap className="w-10 h-10" />
+                    <LogoTBI />
                   </motion.div>
                 </motion.div>
                 <h2 className="text-2xl font-black text-forest mb-4 uppercase tracking-wide">Tanya Jawab TBI</h2>
