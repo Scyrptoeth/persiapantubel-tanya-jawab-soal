@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Supabase is now disabled to support Privacy-First (Local-Only) architecture.
+// All historical data is stored exclusively in the user's localStorage.
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -7,78 +10,23 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
 
-export async function saveToTutorHistory({
-  domain,
-  questionText,
-  answerText,
-  metadata = {}
-}: {
-  domain: "tpa" | "tbi";
-  questionText: string;
-  answerText: string;
-  metadata?: any;
-}) {
-  if (!supabase) return null;
-  
-  try {
-    const { data, error } = await supabase
-      .from("tutor_history")
-      .insert([
-        {
-          domain,
-          question_text: questionText,
-          answer_text: answerText,
-          metadata
-        }
-      ])
-      .select("id")
-      .single();
-
-    if (error) {
-      console.error("Supabase insert error:", error);
-      return null;
-    }
-    return data.id as number;
-  } catch (err) {
-    console.error("Failed to save to Supabase:", err);
-    return null;
-  }
+/**
+ * @deprecated Cloud sync is disabled. Use localStorage instead.
+ */
+export async function saveToTutorHistory(_params: any) {
+  return null;
 }
 
-export async function updateTutorHistory(id: number, metadata: any) {
-  if (!supabase) return;
-
-  try {
-    const { error } = await supabase
-      .from("tutor_history")
-      .update({ metadata })
-      .eq("id", id);
-
-    if (error) console.error("Supabase update error:", error);
-  } catch (err) {
-    console.error("Failed to update Supabase:", err);
-  }
+/**
+ * @deprecated Cloud sync is disabled.
+ */
+export async function updateTutorHistory(_id: number, _metadata: any) {
+  return;
 }
 
-export async function fetchTutorHistory(domain: "tpa" | "tbi", limit = 20) {
-  if (!supabase) return [];
-
-  try {
-    const { data, error } = await supabase
-      .from("tutor_history")
-      .select("*")
-      .eq("domain", domain)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error("Supabase fetch error:", error);
-      return [];
-    }
-
-    return data;
-  } catch (err) {
-    console.error("Failed to fetch from Supabase:", err);
-    return [];
-  }
+/**
+ * @deprecated Cloud sync is disabled.
+ */
+export async function fetchTutorHistory(_domain: string, _limit = 20) {
+  return [];
 }

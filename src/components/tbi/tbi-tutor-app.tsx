@@ -4,10 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRightLeft,
-  Check,
   ChevronLeft,
   ChevronRight,
-  Copy,
   Download,
   Upload,
   X,
@@ -19,7 +17,6 @@ import {
   type OutputMode,
   type TbiQuestionType,
 } from "@/lib/tbi-prompt";
-import { fetchTutorHistory, saveToTutorHistory, updateTutorHistory } from "@/lib/supabase";
 
 // Decoupled Components
 import { Header } from "@/components/shared/Header";
@@ -31,22 +28,12 @@ import { StickyActionPanel } from "@/components/shared/StickyActionPanel";
 import { BatchReviewPanel } from "@/components/shared/BatchReviewPanel";
 import { FollowUpChat } from "@/components/shared/FollowUpChat";
 import { FollowUpInput } from "@/components/shared/FollowUpInput";
-import type { HistoryMode, HistoryItem, CloudHistoryItem, HistoryDeleteTarget, BatchStatus, BatchItem } from "@/components/shared/types";
+import type { HistoryMode, HistoryItem, HistoryDeleteTarget, BatchStatus, BatchItem } from "@/components/shared/types";
 import { useTutorStore, type Message } from "@/store/tutorStore";
 
 const IMAGE_MODE = "ocr";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_BATCH_FILES = 20;
-
-const sampleQuestion =
-  "Tail pipes are now coated with a thin ... ceramic.\n\nA. prevent-corrosion\nB. corrosion-prevent\nC. corrosion-prevention\nD. corrosion-preventing";
-
-const modeDescriptions: Record<OutputMode, string> = {
-  standard: "Format baku single-question.",
-  concise: "Kunci dan alasan inti.",
-  audit: "Kroscek kunci lama.",
-  docx: "Blok dokumen rapi.",
-};
 
 const batchStatusLabels: Record<BatchStatus, string> = {
   pending: "Menunggu",
@@ -124,10 +111,6 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function isLimitMessage(message: string) {
-  return /context|token|maximum|too large|payload|413|length/i.test(message);
-}
-
 function buildBatchAnswer(items: BatchItem[]) {
   return items
     .filter((item) => ["done", "failed", "stopped"].includes(item.status))
@@ -165,11 +148,7 @@ export function TbiTutorApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [cloudHistory, setCloudHistory] = useState<CloudHistoryItem[]>([]);
-  const [historyMode, setHistoryMode] = useState<HistoryMode>("local");
-  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [historyPage, setHistoryPage] = useState(0);
-  const [cloudHistoryPage, setCloudHistoryPage] = useState(0);
   const [pendingHistoryDelete, setPendingHistoryDelete] =
     useState<HistoryDeleteTarget>(null);
   const [apiPreset, setApiPreset] = useState<ApiPreset>("deepseek");
@@ -190,8 +169,6 @@ export function TbiTutorApp() {
     messages, 
     addMessage, 
     setMessages, 
-    activeSessionId, 
-    setSessionId, 
     clearSession 
   } = useTutorStore();
 
@@ -219,10 +196,6 @@ export function TbiTutorApp() {
   const visibleHistoryIndex = historyTotal ? Math.min(historyPage, historyTotal - 1) : 0;
   const visibleHistoryItem = history[visibleHistoryIndex] || null;
 
-  const cloudHistoryTotal = cloudHistory.length;
-  const visibleCloudHistoryIndex = cloudHistoryTotal ? Math.min(cloudHistoryPage, cloudHistoryTotal - 1) : 0;
-  const visibleCloudHistoryItem = cloudHistory[visibleCloudHistoryIndex] || null;
-
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       try {
@@ -239,7 +212,7 @@ export function TbiTutorApp() {
 
   useEffect(() => {
     if (!hasLoadedHistoryRef.current) return;
-    window.localStorage.setItem("tbi-tutor-history", JSON.stringify(history.slice(0, 8)));
+    window.localStorage.setItem("tbi-tutor-history", JSON.stringify(history.slice(0, 15)));
   }, [history]);
 
   useEffect(() => {
@@ -449,6 +422,7 @@ export function TbiTutorApp() {
     setCopied(false);
     setIsSolving(true);
     clearSession();
+    
     try {
       const text = questionText.trim();
       if (!text) {
@@ -469,47 +443,20 @@ export function TbiTutorApp() {
         isMainAnswer: true 
       };
       setMessages([newMsg]);
-
-      setHistory((c) => [{ id: crypto.randomUUID(), createdAt: new Date().toLocaleString("id-ID"), questionPreview: buildQuestionPreview(text), outputMode, answer: nextAnswer }, ...c]);
-      setHistoryPage(0);
       
-      const sid = await saveToTutorHistory({ 
-        domain: "tbi", 
-        questionText: text, 
-        answerText: nextAnswer, 
-        metadata: { outputMode, model: data.model || model, usage: data.usage } 
-      });
-      if (sid) setSessionId(sid.toString());
+      setHistory((c) => [{ 
+        id: crypto.randomUUID(), 
+        createdAt: new Date().toLocaleString("id-ID"), 
+        questionPreview: buildQuestionPreview(text), 
+        outputMode, 
+        answer: nextAnswer,
+        messages: [newMsg]
+      }, ...c]);
+      setHistoryPage(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal.");
     } finally {
       setIsSolving(false);
-    }
-  }
-
-  async function solveBatch() {
-    if (!batchItems.length) return;
-    setIsBatchSolving(true);
-    let workingItems = batchItems.map((i) => ({ ...i, status: "pending" as BatchStatus }));
-    setBatchItems(workingItems);
-    try {
-      for (const item of workingItems) {
-        workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: "running" as BatchStatus } : c);
-        setBatchItems(workingItems);
-        try {
-          const data = await requestSolve(item.ocrText.trim());
-          const nextAnswer = data.answer || "";
-          workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: data.limitReached ? "stopped" : "done", answer: nextAnswer, model: data.model || model, usageText: formatUsage(data.usage) } as any : c);
-          setBatchItems(workingItems);
-          setAnswer(buildBatchAnswer(workingItems));
-          void saveToTutorHistory({ domain: "tbi", questionText: item.ocrText.trim(), answerText: nextAnswer, metadata: { outputMode, model: data.model || model, usage: data.usage, fileName: item.name } });
-        } catch (err) {
-          workingItems = workingItems.map((c) => c.id === item.id ? { ...c, status: "failed", error: err instanceof Error ? err.message : "Gagal." } as any : c);
-          setBatchItems(workingItems);
-        }
-      }
-    } finally {
-      setIsBatchSolving(false);
     }
   }
 
@@ -523,14 +470,13 @@ export function TbiTutorApp() {
       timestamp: new Date().toISOString()
     };
     
-    addMessage(userMsg);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setIsSolving(true);
     setError("");
 
     try {
-      const thread = messages.map(m => ({ role: m.role, content: m.content }));
-      thread.push({ role: "user", content: text });
-      
+      const thread = updatedMessages.map(m => ({ role: m.role, content: m.content }));
       const data = await requestSolve("", thread);
       const tutorAnswer = data.answer || "";
       
@@ -540,17 +486,17 @@ export function TbiTutorApp() {
         content: tutorAnswer,
         timestamp: new Date().toISOString()
       };
-      addMessage(assistantMsg);
+      const finalMessages = [...updatedMessages, assistantMsg];
+      setMessages(finalMessages);
 
-      if (activeSessionId) {
-        const followUps = messages.filter(m => !m.isMainAnswer).map(m => ({ role: m.role, content: m.content }));
-        followUps.push({ role: "user", content: text });
-        followUps.push({ role: "assistant", content: tutorAnswer });
-        
-        void updateTutorHistory(Number(activeSessionId), {
-          outputMode,
-          model: data.model || model,
-          followUps
+      // Update Local History with the full discussion
+      if (history.length > 0 && historyPage === 0) {
+        setHistory(prev => {
+          const next = [...prev];
+          if (next[0]) {
+            next[0] = { ...next[0], messages: finalMessages };
+          }
+          return next;
         });
       }
     } catch (err) {
@@ -583,25 +529,9 @@ export function TbiTutorApp() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  async function loadCloudHistoryData() {
-    setIsFetchingHistory(true);
-    try {
-      const data = await fetchTutorHistory("tbi");
-      setCloudHistory(data as CloudHistoryItem[]);
-      setCloudHistoryPage(0);
-    } finally {
-      setIsFetchingHistory(false);
-    }
-  }
-
   function moveHistoryPage(direction: -1 | 1) {
-    if (historyMode === "local") {
-      if (!history.length) return;
-      setHistoryPage((current) => Math.min(Math.max(current + direction, 0), history.length - 1));
-    } else {
-      if (!cloudHistory.length) return;
-      setCloudHistoryPage((current) => Math.min(Math.max(current + direction, 0), cloudHistory.length - 1));
-    }
+    if (!history.length) return;
+    setHistoryPage((current) => Math.min(Math.max(current + direction, 0), history.length - 1));
   }
 
   function downloadAnswer() {
@@ -623,7 +553,6 @@ export function TbiTutorApp() {
           subtitle="Workspace Tutor Bahasa Inggris — Persiapantubel"
           switchTarget="/tpa"
           switchLabel="Ke TPA"
-          onSampleClick={() => setQuestionText(sampleQuestion)}
           onSettingsToggle={() => setShowSettings(!showSettings)}
         />
 
@@ -676,8 +605,8 @@ export function TbiTutorApp() {
               </label>
 
               <div className="grid gap-1 rounded-xl border border-forest/5 bg-forest/[0.01] p-3 text-sm text-forest">
-                <span className="font-bold">Mode gambar</span>
-                <span className="text-xs font-medium text-[#45544e]">OCR lokal, cek teks wajib.</span>
+                <span className="font-bold uppercase tracking-wider text-[10px]">Mode gambar</span>
+                <span className="text-xs font-medium text-[#45544e]">OCR lokal aktif. Privasi terjamin.</span>
               </div>
               
               <AnimatePresence>
@@ -738,7 +667,7 @@ export function TbiTutorApp() {
             />
 
             <StickyActionPanel 
-              onClearAll={clearAll} onGenerate={batchItems.length ? solveBatch : solve}
+              onClearAll={clearAll} onGenerate={solve}
               isGenerating={isSolving || isBatchSolving} isBatch={batchItems.length > 0}
               disabled={batchItems.length ? !canSolveBatch : !canSolveSingle}
             />
@@ -766,59 +695,27 @@ export function TbiTutorApp() {
             </div>
 
             <HistoryPanel 
-              historyMode={historyMode} onHistoryModeChange={setHistoryMode}
               historyTotal={historyTotal} visibleHistoryIndex={visibleHistoryIndex} visibleHistoryItem={visibleHistoryItem}
-              cloudHistoryTotal={cloudHistoryTotal} visibleCloudHistoryIndex={visibleCloudHistoryIndex} visibleCloudHistoryItem={visibleCloudHistoryItem}
-              isFetchingHistory={isFetchingHistory} onMoveHistoryPage={moveHistoryPage}
+              onMoveHistoryPage={moveHistoryPage}
               onLoadHistoryItem={(item) => { 
                 clearSession();
                 setAnswer(item.answer); 
                 setOutputMode(item.outputMode as any); 
                 setModelUsed("Riwayat lokal"); 
                 setUsageText(item.createdAt); 
-                
-                const mainMsg: Message = {
-                  id: crypto.randomUUID(),
-                  role: "assistant",
-                  content: item.answer,
-                  timestamp: new Date().toISOString(),
-                  isMainAnswer: true
-                };
-                setMessages([mainMsg]);
-              }}
-              onLoadCloudHistoryItem={(item) => { 
-                clearSession();
-                setAnswer(item.answer_text); 
-                setOutputMode(item.metadata?.outputMode as any); 
-                setModelUsed(item.metadata?.model || "Riwayat cloud"); 
-                setUsageText(new Date(item.created_at).toLocaleString("id-ID")); 
-                setSessionId(item.id.toString());
-
-                const thread: Message[] = [
-                  {
-                    id: crypto.randomUUID(),
-                    role: "assistant",
-                    content: item.answer_text,
-                    timestamp: item.created_at,
-                    isMainAnswer: true
-                  }
-                ];
-
-                if (item.metadata?.followUps) {
-                  item.metadata.followUps.forEach((m: any) => {
-                    thread.push({
+                if (item.messages) setMessages(item.messages);
+                else {
+                   setMessages([{
                       id: crypto.randomUUID(),
-                      role: m.role,
-                      content: m.content,
-                      timestamp: new Date().toISOString()
-                    });
-                  });
+                      role: "assistant",
+                      content: item.answer,
+                      timestamp: new Date().toISOString(),
+                      isMainAnswer: true
+                   }]);
                 }
-                setMessages(thread);
               }}
-              onLoadCloudHistoryData={loadCloudHistoryData}
               onDeleteHistory={setPendingHistoryDelete}
-              outputModeLabels={outputModeLabels} buildQuestionPreview={buildQuestionPreview}
+              outputModeLabels={outputModeLabels}
             />
           </aside>
         </div>
@@ -846,3 +743,5 @@ export function TbiTutorApp() {
     </main>
   );
 }
+
+async function handleFilesChange(files: FileList | File[] | null) {}

@@ -1,4 +1,4 @@
-export type HistoryMode = "local" | "cloud";
+export type HistoryMode = "local";
 
 export type HistoryItem = {
   id: string;
@@ -6,19 +6,13 @@ export type HistoryItem = {
   questionPreview: string;
   outputMode: string;
   answer: string;
-};
-
-export type CloudHistoryItem = {
-  id: number;
-  created_at: string;
-  question_text: string;
-  answer_text: string;
-  domain: string;
-  metadata?: {
-    outputMode?: string;
-    model?: string;
-    followUps?: Array<{ role: "user" | "assistant"; content: string }>;
-  };
+  messages?: Array<{
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+    isMainAnswer?: boolean;
+  }>;
 };
 
 export type HistoryDeleteTarget =

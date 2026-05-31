@@ -14,7 +14,6 @@ interface HeaderProps {
   subtitle: string;
   switchTarget: "/tpa" | "/tbi";
   switchLabel: string;
-  onSampleClick: () => void;
   onSettingsToggle: () => void;
 }
 
@@ -23,7 +22,6 @@ export function Header({
   subtitle,
   switchTarget,
   switchLabel,
-  onSampleClick,
   onSettingsToggle,
 }: HeaderProps) {
   return (
@@ -60,14 +58,6 @@ export function Header({
           <ArrowRightLeft size={18} aria-hidden="true" />
           {switchLabel}
         </Link>
-        <button
-          type="button"
-          onClick={onSampleClick}
-          className="inline-flex h-11 items-center gap-2 rounded-lg border border-[#c8d0cb] bg-white px-4 text-sm font-semibold text-[#27332e] shadow-sm transition hover:bg-[#f8faf9] active:scale-95"
-        >
-          <FileText size={18} aria-hidden="true" />
-          Contoh
-        </button>
         <button
           type="button"
           onClick={onSettingsToggle}
