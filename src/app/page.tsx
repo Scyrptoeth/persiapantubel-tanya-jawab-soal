@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { LogoTPA, LogoTBI } from "@/components/shared/Logos";
 
 export default function Home() {
   const containerVariants = {
@@ -118,60 +119,6 @@ export default function Home() {
       } 
     }
   };
-
-  const LogoTPA = () => (
-    <div className="relative flex items-center justify-center">
-      <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="gradTPA" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#991b1b" />
-            <stop offset="100%" stopColor="#ef4444" />
-          </linearGradient>
-        </defs>
-        <rect x="5" y="5" width="50" height="50" rx="12" fill="url(#gradTPA)" fillOpacity="0.1" stroke="url(#gradTPA)" strokeWidth="2" />
-        <text 
-          x="50%" 
-          y="50%" 
-          dominantBaseline="central" 
-          textAnchor="middle" 
-          fill="url(#gradTPA)" 
-          fontSize="18" 
-          fontWeight="900" 
-          fontFamily="sans-serif"
-          style={{ letterSpacing: '1px' }}
-        >
-          TPA
-        </text>
-      </svg>
-    </div>
-  );
-
-  const LogoTBI = () => (
-    <div className="relative flex items-center justify-center">
-      <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="gradTBI" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#b45309" />
-            <stop offset="100%" stopColor="#f59e0b" />
-          </linearGradient>
-        </defs>
-        <rect x="5" y="5" width="50" height="50" rx="12" fill="url(#gradTBI)" fillOpacity="0.1" stroke="url(#gradTBI)" strokeWidth="2" />
-        <text 
-          x="50%" 
-          y="50%" 
-          dominantBaseline="central" 
-          textAnchor="middle" 
-          fill="url(#gradTBI)" 
-          fontSize="18" 
-          fontWeight="900" 
-          fontFamily="sans-serif"
-          style={{ letterSpacing: '1px' }}
-        >
-          TBI
-        </text>
-      </svg>
-    </div>
-  );
 
   return (
     <main className="min-h-dvh flex flex-col items-center justify-center p-6 md:p-24 relative overflow-hidden bg-paper text-forest">
