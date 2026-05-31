@@ -5,21 +5,25 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 const lora = Lora({
   variable: "--font-lora",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 import { PageTransition } from "@/components/shared/PageTransition";
@@ -41,8 +45,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/logo.png",
-        width: 800,
-        height: 600,
+        width: 1256,
+        height: 658,
         alt: "Logo Persiapantubel",
       },
     ],
